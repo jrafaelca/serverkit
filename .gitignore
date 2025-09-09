@@ -1,0 +1,15 @@
+# Node modules
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment variables
+.env*
+
+# Output of 'npm pack'
+*.tgz
+
+# JetBrains IDE config
+.idea/
