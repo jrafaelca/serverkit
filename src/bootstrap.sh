@@ -2,17 +2,18 @@
 set -euo pipefail
 
 # ===============================================
-# 🚀 provision.sh — Inicialización del servidor
+# bootstrap.sh — Inicialización del servidor
 # ===============================================
 # Este script prepara una instancia Ubuntu 22.04/24.04
 # con configuración base para producción segura.
 # ===============================================
 
-# --- Modo no interactivo para evitar prompts de APT ---
+# Configura el entorno no interactivo para evitar prompts de APT
 export DEBIAN_FRONTEND=noninteractive
 LOG_FILE="/var/log/provision.log"
 
 # --- Inicia logging ---
+# Registra el inicio del aprovisionamiento en un archivo de log
 echo "=== Provisioning started at $(date '+%Y-%m-%d %H:%M:%S') ===" >> "$LOG_FILE"
 exec > >(tee -a "$LOG_FILE") 2>&1
 
@@ -24,12 +25,14 @@ echo "📅 Fecha: $(date)"
 # ===============================================
 
 # --- Verifica permisos ---
+# Comprueba que el script se esté ejecutando como root
 if [[ $EUID -ne 0 ]]; then
   echo "❌ Este script debe ejecutarse como root (usa sudo)."
   exit 1
 fi
 
 # --- Evita ejecuciones repetidas ---
+# Verifica si el servidor ya fue aprovisionado previamente
 if [[ -f /root/.serverkit-provisioned ]]; then
   echo "⚠️ Este servidor ya fue aprovisionado anteriormente."
   echo "   Si necesitas volver a ejecutarlo, elimina /root/.serverkit-provisioned."
@@ -37,6 +40,7 @@ if [[ -f /root/.serverkit-provisioned ]]; then
 fi
 
 # --- Comprueba distribución ---
+# Verifica que el sistema operativo sea Ubuntu y esté en las versiones soportadas
 if [[ ! -f /etc/os-release ]]; then
   echo "❌ No se puede determinar el sistema operativo (falta /etc/os-release)."
   exit 1
@@ -45,7 +49,12 @@ fi
 source /etc/os-release
 SUPPORTED_VERSIONS=("22.04" "24.04")
 
-if [[ "$NAME" != "Ubuntu" || ! " ${SUPPORTED_VERSIONS[@]} " =~ " ${VERSION_ID} " ]]; then
+if [[ "$NAME" != "Ubuntu" ]]; then
+  echo "Solo se admite Ubuntu (detectado: $NAME)."
+  exit 1
+fi
+
+if [[ ! " ${SUPPORTED_VERSIONS[*]} " =~ ${VERSION_ID} ]]; then
   echo "❌ Ubuntu ${VERSION_ID} no soportado. Solo se admite ${SUPPORTED_VERSIONS[*]}."
   exit 1
 fi
@@ -56,34 +65,37 @@ echo "✅ Sistema compatible detectado: $PRETTY_NAME"
 # Actualización del sistema
 # ===============================================
 
+# Actualiza los paquetes del sistema y los actualiza a la última versión
 apt-get update -y
 apt-get upgrade -y
 
-# --- Instala utilidades esenciales ---
+# --- Paquetes esenciales ---
+# Instala herramientas y utilidades necesarias para el servidor
 apt-get install -yq \
-  build-essential \             # herramientas gcc/g++/make
-  cron \                        # tareas programadas
-  curl \                        # descargas HTTP
-  fail2ban \                    # protección de SSH
-  git \                         # control de versiones
-  jq \                          # manipulación JSON
-  make \                        # utilidad de build
-  ncdu \                        # uso de disco
-  net-tools \                   # ifconfig, netstat
-  pkg-config \                  # compilación
-  rsyslog \                     # logging del sistema
-  sendmail \                    # correo básico
-  unzip \                       # descompresión ZIP
-  uuid-runtime \                # generación UUID
-  whois \                       # consultas WHOIS + util mkpasswd
-  zip \                         # compresión ZIP
-  zsh                           # shell opcional
+  build-essential \
+  cron \
+  curl \
+  fail2ban \
+  git \
+  jq \
+  make \
+  ncdu \
+  net-tools \
+  pkg-config \
+  rsyslog \
+  sendmail \
+  unzip \
+  uuid-runtime \
+  whois \
+  zip \
+  zsh
 
 # ===============================================
 # Configuración SSH y usuario principal
 # ===============================================
 
 # --- Asegura la existencia del directorio SSH de root ---
+# Crea el directorio .ssh para root si no existe y configura permisos seguros
 if [ ! -d /root/.ssh ]; then
   mkdir -p /root/.ssh
   touch /root/.ssh/authorized_keys
@@ -92,14 +104,16 @@ fi
 chown -R root:root /root/.ssh
 chmod 700 /root/.ssh
 chmod 600 /root/.ssh/authorized_keys
-touch /root/.hushlogin  # silencia mensajes de login
+touch /root/.hushlogin
 
-# --- Crea el usuario administrativo 'serverkit' ---
+# --- Crea usuario administrativo ---
+# Crea un nuevo usuario administrativo llamado 'serverkit'
 useradd serverkit
 mkdir -p /home/serverkit/.ssh /home/serverkit/.serverkit
 adduser serverkit sudo
 
 # --- Configura shell y entorno ---
+# Configura el entorno del usuario 'serverkit' y copia configuraciones básicas
 chsh -s /bin/bash serverkit
 cp /root/.profile /home/serverkit/.profile
 cp /root/.bashrc /home/serverkit/.bashrc
@@ -108,26 +122,15 @@ chmod -R 755 /home/serverkit
 touch /home/serverkit/.hushlogin
 
 # --- Copia claves SSH desde root ---
+# Copia las claves SSH de root al usuario 'serverkit'
 cp -a /root/.ssh /home/serverkit/
 chown -R serverkit:serverkit /home/serverkit/.ssh
 
-# --- Elimina el usuario predeterminado 'ubuntu' (por motivos de seguridad) ---
-if id ubuntu &>/dev/null; then
-  echo "⚠️  Eliminando usuario 'ubuntu' (sudo sin contraseña detectado)..."
+# ===============================================
+# Endurecimiento SSH
+# ===============================================
 
-  # Finaliza procesos activos (sin error si no hay)
-  pkill -u ubuntu 2>/dev/null || true
-
-  # Elimina permisos sudo heredados
-  rm -f /etc/sudoers.d/90-cloud-init-users
-
-  # Elimina el usuario y su directorio home
-  deluser --remove-home ubuntu 2>/dev/null || rm -rf /home/ubuntu
-
-  echo "✅ Usuario 'ubuntu' eliminado correctamente."
-fi
-
-# --- Endurece configuración SSH ---
+# Configura el servicio SSH para deshabilitar contraseñas y permitir solo autenticación por clave pública
 mkdir -p /etc/ssh/sshd_config.d
 cat << EOF > /etc/ssh/sshd_config.d/49-serverkit.conf
 # Configuración administrada por ServerKit
@@ -136,9 +139,9 @@ PermitRootLogin prohibit-password
 PubkeyAuthentication yes
 EOF
 
-# --- Genera claves host y activa SSH ---
+# Genera claves de host SSH y reinicia el servicio SSH
 ssh-keygen -A
-service ssh restart
+systemctl restart ssh
 systemctl enable ssh.service
 
 # ===============================================
@@ -146,6 +149,7 @@ systemctl enable ssh.service
 # ===============================================
 
 # --- Crea archivo swap de 1 GB si no existe ---
+# Configura un archivo de swap para mejorar el rendimiento si no está configurado
 if [ ! -f /swapfile ]; then
   fallocate -l 1G /swapfile
   chmod 600 /swapfile
@@ -159,9 +163,10 @@ else
 fi
 
 # ===============================================
-# Configuración regional y zona horaria
+# Zona horaria
 # ===============================================
 
+# Configura la zona horaria del servidor a UTC
 if command -v timedatectl >/dev/null 2>&1; then
   timedatectl set-timezone UTC
 else
@@ -170,59 +175,60 @@ else
 fi
 
 # ===============================================
-# Limpieza automática (archivos antiguos)
+# Limpieza automática
 # ===============================================
 
 # --- Script de limpieza (archivos >30 días) ---
+# Crea un script para limpiar archivos antiguos en directorios específicos
 cat > /root/serverkit-cleanup.sh << 'EOF'
 #!/usr/bin/env bash
 UID_MIN=$(awk '/^UID_MIN/ {print $2}' /etc/login.defs)
 UID_MAX=$(awk '/^UID_MAX/ {print $2}' /etc/login.defs)
-HOME_DIRECTORIES=$(eval getent passwd {0,{${UID_MIN}..${UID_MAX}}} | cut -d: -f6)
+HOME_DIRECTORIES=$(getent passwd | awk -F: -v min=$UID_MIN -v max=$UID_MAX '{if ($3>=min && $3<=max) print $6}')
 for DIRECTORY in $HOME_DIRECTORIES; do
   TARGET="$DIRECTORY/.serverkit"
   [ -d "$TARGET" ] || continue
-  echo "🧹 Cleaning $TARGET..."
+  echo "Cleaning $TARGET..."
   find "$TARGET" -type f -mtime +30 -print0 | xargs -r0 rm --
 done
 EOF
 chmod +x /root/serverkit-cleanup.sh
 
 # --- Cronjob diario de limpieza ---
-echo "" | tee -a /etc/crontab
-echo "# Serverkit Provisioning Cleanup" | tee -a /etc/crontab
-tee -a /etc/crontab <<"CRONJOB"
-0 0 * * * root bash /root/serverkit-cleanup.sh 2>&1
-CRONJOB
+# Configura un cronjob para ejecutar el script de limpieza diariamente
+echo "" >> /etc/crontab
+echo "# Serverkit Provisioning Cleanup" >> /etc/crontab
+echo "0 0 * * * root bash /root/serverkit-cleanup.sh 2>&1" >> /etc/crontab
 
 # ===============================================
-# Hostname, usuario y Git
+# Hostname, Git y claves
 # ===============================================
 
-# --- Genera un hostname aleatorio para evitar conflictos ---
+# Configura un hostname aleatorio para el servidor
 HOSTNAME="serverkit-$(openssl rand -hex 3)"
 echo "$HOSTNAME" > /etc/hostname
 sed -i "s/127\.0\.0\.1.*localhost/127.0.0.1\t$HOSTNAME.localdomain $HOSTNAME localhost/" /etc/hosts
-hostname "$HOSTNAME"
+hostnamectl set-hostname "$HOSTNAME"
 
-# --- Genera contraseña aleatoria y la aplica al usuario ---
+# Genera una contraseña aleatoria para el usuario 'serverkit'
 RAW_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | cut -c1-16)
-
 ENCRYPTED_PASSWORD=$(mkpasswd -m sha-512 "$RAW_PASSWORD")
 usermod --password "$ENCRYPTED_PASSWORD" serverkit
 
-# --- Crea clave SSH para el usuario ---
+# Genera claves SSH para el usuario 'serverkit'
 ssh-keygen -f /home/serverkit/.ssh/id_rsa -t ed25519 -N ''
 chown -R serverkit:serverkit /home/serverkit/.ssh
 chmod 700 /home/serverkit/.ssh/id_rsa
 
-# --- Agrega hosts de confianza ---
-ssh-keyscan -H github.com >> /home/serverkit/.ssh/known_hosts
-ssh-keyscan -H bitbucket.org >> /home/serverkit/.ssh/known_hosts
-ssh-keyscan -H gitlab.com >> /home/serverkit/.ssh/known_hosts
+# Agrega hosts de confianza para Git
+{
+  ssh-keyscan -H github.com
+  ssh-keyscan -H bitbucket.org
+  ssh-keyscan -H gitlab.com
+} >> /home/serverkit/.ssh/known_hosts
 chown serverkit:serverkit /home/serverkit/.ssh/known_hosts
 
-# --- Configuración global de Git ---
+# Configura Git para el usuario 'serverkit'
 git config --global user.name "Serverkit"
 git config --global user.email "serverkit@localhost"
 
@@ -230,20 +236,19 @@ git config --global user.email "serverkit@localhost"
 # Firewall y actualizaciones automáticas
 # ===============================================
 
-# --- Detecta entorno AWS y ajusta firewall ---
+# Configura el firewall UFW si no está en un entorno AWS
 if [ -z "${AWS_EXECUTION_ENV:-}" ]; then
-  echo "🔐 Configurando firewall UFW local..."
+  echo "Configurando firewall UFW local..."
   ufw default deny incoming
   ufw default allow outgoing
   ufw allow 22
   ufw --force enable
 else
-  echo "⚙️ Detectado entorno Amazon EC2: omitiendo configuración de UFW (controlado por Security Group)."
+  echo "Entorno Amazon EC2 detectado, omitiendo UFW."
 fi
 
+# Configura actualizaciones automáticas
 apt-get update -o Acquire::AllowReleaseInfoChange=true
-
-# --- Configura actualizaciones automáticas ---
 cat > /etc/apt/apt.conf.d/10periodic << EOF
 APT::Periodic::Update-Package-Lists "1";
 APT::Periodic::Download-Upgradeable-Packages "1";
@@ -255,9 +260,10 @@ EOF
 # Kernel y rotación de logs
 # ===============================================
 
-sysctl --system  # aplica parámetros del kernel
+# Aplica parámetros del kernel
+sysctl --system
 
-# --- Ajusta tamaño máximo de logs ---
+# Configura la rotación de logs para limitar el tamaño máximo
 for file in fail2ban rsyslog ufw; do
   conf="/etc/logrotate.d/$file"
   if [[ $(grep --count "maxsize" "$conf") == 0 ]]; then
@@ -267,7 +273,7 @@ for file in fail2ban rsyslog ufw; do
   fi
 done
 
-# --- Reconfigura logrotate.timer para correr cada hora ---
+# Configura logrotate para ejecutarse cada hora
 cat > /etc/systemd/system/timers.target.wants/logrotate.timer << EOF
 [Unit]
 Description=Rotation of log files
@@ -281,19 +287,21 @@ EOF
 systemctl daemon-reload
 systemctl restart logrotate.timer
 
-# --- Limpieza final ---
+# Limpia paquetes innecesarios
 apt-get autoremove -y
 apt-get clean
 
 # ===============================================
-# 🔚 Finalización
+# Finalización
 # ===============================================
+
+# Marca el servidor como aprovisionado
 touch /root/.serverkit-provisioned
 
-echo
-echo "==========================================="
+# Muestra información final del servidor
 IP=$(curl -s ifconfig.me || echo "desconocida")
 echo
+echo "==========================================="
 echo "✅ Servidor aprovisionado correctamente."
 echo "Hostname: $HOSTNAME"
 echo "Dirección IP pública: $IP"
@@ -302,6 +310,5 @@ echo "Usuario: serverkit"
 echo "Contraseña: $RAW_PASSWORD"
 echo
 echo "Copia y guarda esta contraseña ahora."
-echo "Luego puedes limpiar la terminal con: history -c && clear"
 echo "==========================================="
 echo "=== Provisioning completed at $(date '+%Y-%m-%d %H:%M:%S') ===" >> "$LOG_FILE"
