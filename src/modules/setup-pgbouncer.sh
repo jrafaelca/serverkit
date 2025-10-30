@@ -16,7 +16,7 @@ setup_pgbouncer() {
 
   # --- Paquetes ---
   apt-get update -y >> "$LOG_FILE" 2>&1
-  apt-get install -y pgbouncer openssl >> "$LOG_FILE" 2>&1
+  apt-get install -y pgbouncer postgresql-client openssl >> "$LOG_FILE" 2>&1
 
   # --- Usuario y directorios ---
   id pgbouncer &>/dev/null || useradd -r -s /usr/sbin/nologin -d /var/run/pgbouncer pgbouncer
