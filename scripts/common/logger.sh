@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ===============================================
-# logger.sh — Módulo de logging para ServerKit
+# Módulo de logging para ServerKit
 # ===============================================
 # Proporciona funciones estándar para registrar
 # información, advertencias y errores en logs.

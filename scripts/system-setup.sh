@@ -2,15 +2,15 @@
 set -euo pipefail
 
 # ===============================================
-# update-system.sh — Actualización del sistema base
+# Configuración del sistema base
 # ===============================================
 # Actualiza los paquetes del sistema, instala las
 # utilidades esenciales y limpia paquetes antiguos.
 # ===============================================
 
-[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/common/loader.sh
+[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
-update_system() {
+system_setup() {
   log_info "Iniciando actualización del sistema base..."
 
   # --- Ajuste de timeout para evitar conflictos con dpkg locks (apt concurrente) ---
@@ -82,4 +82,4 @@ EOF
   fi
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && update_system "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && system_setup "$@"

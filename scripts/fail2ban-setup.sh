@@ -2,16 +2,16 @@
 set -euo pipefail
 
 # ===============================================
-# setup-fail2ban.sh — Instalación y configuración de Fail2Ban
+# Instalación y configuración de Fail2Ban
 # ===============================================
 # Puede ejecutarse directamente:
-#   sudo bash setup-fail2ban.sh
+#   sudo bash fail2ban-setup.sh
 # o copiarse y ejecutar los comandos manualmente.
 # ===============================================
 
-[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/common/loader.sh
+[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
-setup_fail2ban() {
+fail2ban_setup() {
   log_info "Iniciando instalación y configuración de Fail2Ban..."
 
   # --- Instalación ---
@@ -43,4 +43,4 @@ setup_fail2ban() {
   log_info "✅ Configuración de Fail2Ban completada correctamente."
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && setup_fail2ban "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && fail2ban_setup "$@"

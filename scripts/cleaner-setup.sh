@@ -2,16 +2,16 @@
 set -euo pipefail
 
 # ===============================================
-# setup-cleanup.sh — Configuración de limpieza automática
+# Configuración de limpieza automática
 # ===============================================
 # Crea un script que limpia archivos viejos en ~/.serverkit
 # para todos los usuarios del sistema y programa su ejecución
 # diaria mediante cron.
 # ===============================================
 
-[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/common/loader.sh
+[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
-setup_cleanup() {
+cleaner_setup() {
   log_info "Iniciando configuración de limpieza automática..."
 
   # --- Crea directorio si no existe ---
@@ -51,4 +51,4 @@ EOF
   fi
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && setup_cleanup "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && cleaner_setup "$@"

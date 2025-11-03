@@ -2,15 +2,15 @@
 set -euo pipefail
 
 # ===============================================
-# setup-timezone.sh — Configuración de zona horaria a UTC
+# Configuración de zona horaria a UTC
 # ===============================================
 # Establece la zona horaria del sistema en UTC.
 # Compatible tanto con sistemas con systemd como sin él.
 # ===============================================
 
-[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/common/loader.sh
+[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scommon/loader.sh
 
-setup_timezone() {
+timezone_setup() {
   log_info "Iniciando configuración de zona horaria a UTC..."
 
   # --- Intenta establecer la zona horaria ---
@@ -31,4 +31,4 @@ setup_timezone() {
   fi
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && setup_timezone "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && timezone_setup "$@"

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ===============================================
-# setup-user.sh — Creación del usuario administrativo 'serverkit'
+# Creación del usuario administrativo 'serverkit'
 # ===============================================
 # Crea el usuario con privilegios sudo y adm, genera su
 # contraseña aleatoria y una clave SSH segura.
@@ -10,9 +10,9 @@ set -euo pipefail
 
 USERNAME="serverkit"
 
-[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/common/loader.sh
+[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
-setup_user() {
+user_setup() {
   log_info "Iniciando creación del usuario administrativo '${USERNAME}'..."
 
   # --- Verifica si ya existe ---
@@ -55,7 +55,6 @@ setup_user() {
   if id "$USERNAME" &>/dev/null && [[ -d /home/"$USERNAME" ]]; then
     log_info "✅ Usuario '${USERNAME}' creado correctamente."
 
-    # Solo mostrar resumen si el script se ejecuta directamente
     if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
       echo ""
       echo "   👤 Usuario: ${USERNAME}"
@@ -70,4 +69,4 @@ setup_user() {
   fi
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && setup_user "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && user_setup "$@"

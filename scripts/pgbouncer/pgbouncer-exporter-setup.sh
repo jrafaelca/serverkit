@@ -2,15 +2,15 @@
 set -euo pipefail
 
 # ===============================================
-# setup-pgbouncer-exporter.sh — Instalación de PgBouncer Exporter
+# Instalación de PgBouncer Exporter
 # ===============================================
 # Crea usuario "exporter" en PgBouncer y configura
 # el servicio Prometheus pgbouncer_exporter.
 # ===============================================
 
-[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/common/loader.sh
+[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
-setup_pgbouncer_exporter() {
+pgbouncer_exporter_setup() {
   log_info "Instalando PgBouncer Exporter..."
 
   USERLIST="/etc/pgbouncer/userlist.txt"
@@ -74,15 +74,18 @@ EOF
   fi
 
   echo
-  echo "==============================================="
   echo "PgBouncer Exporter instalado correctamente."
-  echo "Usuario : ${EXPORTER_USER}"
-  echo "Contraseña : ${EXPORTER_PASS}"
-  echo "Endpoint métricas : http://localhost:9187/metrics"
-  echo
-  echo "Para limpiar del historial los datos sensibles, ejecuta (una sola línea):"
-  echo "  history -c && history -w && rm -f ~/.bash_history"
-  echo "==========================================="
+
+  if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo "==============================================="
+    echo "Usuario : ${EXPORTER_USER}"
+    echo "Contraseña : ${EXPORTER_PASS}"
+    echo "Endpoint métricas : http://localhost:9187/metrics"
+    echo
+    echo "Para limpiar del historial los datos sensibles, ejecuta (una sola línea):"
+    echo "  history -c && history -w && rm -f ~/.bash_history"
+    echo "==========================================="
+  fi
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && setup_pgbouncer_exporter "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && pgbouncer_exporter_setup "$@"

@@ -2,15 +2,15 @@
 set -euo pipefail
 
 # ===============================================
-# setup-swap.sh — Configuración del archivo swap
+# Configuración del archivo swap
 # ===============================================
 # Crea un archivo de intercambio de 1GB si no existe.
 # Aplica parámetros de rendimiento del kernel.
 # ===============================================
 
-[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/common/loader.sh
+[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
-setup_swap() {
+swap_setup() {
   log_info "Iniciando configuración del archivo swap..."
 
   SWAPFILE="/swapfile"
@@ -31,7 +31,7 @@ setup_swap() {
       log_info "Archivo swap creado y activado correctamente."
     else
       log_warn "⚠️ No se pudo activar el swap (posiblemente VM o overlayfs)."
-      register_deferred_action "bash /opt/serverkit/modules/setup-swap.sh"
+      register_deferred_action "bash /opt/serverkit/scripts/setup-swap.sh"
       return
     fi
   else
@@ -60,4 +60,4 @@ setup_swap() {
   fi
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && setup_swap "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && swap_setup "$@"

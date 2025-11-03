@@ -14,16 +14,14 @@ set -euo pipefail
 source /opt/serverkit/common/loader.sh
 
 # --- Carga módulos principales ---
-source /opt/serverkit/modules/update-system.sh
-source /opt/serverkit/modules/setup-user.sh
-source /opt/serverkit/modules/hardening-ssh.sh
-source /opt/serverkit/modules/setup-swap.sh
-source /opt/serverkit/modules/setup-timezone.sh
-source /opt/serverkit/modules/setup-cleanup.sh
-source /opt/serverkit/modules/setup-firewall.sh
-source /opt/serverkit/modules/setup-logrotate.sh
-source /opt/serverkit/modules/setup-fail2ban.sh
-source /opt/serverkit/modules/setup-deferred-actions.sh
+source /opt/serverkit/scripts/system-setup.sh
+source /opt/serverkit/scripts/user-setup.sh
+source /opt/serverkit/scripts/ssh-hardening.sh
+source /opt/serverkit/scripts/swap-setup.sh
+source /opt/serverkit/scripts/timezone-setup.sh
+source /opt/serverkit/scripts/cleaner-setup.sh
+source /opt/serverkit/scripts/logrotate-setup.sh
+source /opt/serverkit/scripts/fail2ban-setup.sh
 
 main() {
   log_start
@@ -39,15 +37,14 @@ main() {
   echo "-------------------------------------------"
 
   # --- Ejecución de módulos principales ---
-  update_system
-  setup_user
-  harden_ssh
-  setup_swap
-  setup_timezone
-  setup_cleanup
-  setup_firewall
-  setup_logrotate
-  setup_fail2ban
+  system_setup
+  user_setup
+  ssh_hardening
+  swap_setup
+  timezone_setup
+  cleaner_setup
+  logrotate_setup
+  fail2ban_setup
 
   # --- Marcador de instalación ---
   touch /opt/serverkit/.provisioned

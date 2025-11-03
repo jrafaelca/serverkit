@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ===============================================
-# loader.sh — Cargador universal de entorno ServerKit
+# Cargador universal de entorno ServerKit
 # ===============================================
 # Centraliza la inicialización del entorno:
 #  - Carga variables globales y utilidades
@@ -17,9 +17,9 @@ export SERVERKIT_ENV_INITIALIZED=1
 
 # --- Carga dependencias comunes ---
 for lib in \
-  "$BASE_DIR/common/env.sh" \
-  "$BASE_DIR/common/logger.sh" \
-  "$BASE_DIR/common/utils.sh"
+  "$BASE_DIR/scripts/common/env.sh" \
+  "$BASE_DIR/scripts/common/logger.sh" \
+  "$BASE_DIR/scripts/common/utils.sh"
 do
   [[ -f "$lib" ]] && source "$lib"
 done

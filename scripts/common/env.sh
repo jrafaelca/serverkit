@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ===============================================
-# env.sh — Variables de entorno comunes para ServerKit
+# Variables de entorno comunes para ServerKit
 # ===============================================
 # Define variables globales reutilizadas por todos
 # los módulos de ServerKit. No ejecuta lógica directa.

@@ -2,16 +2,16 @@
 set -euo pipefail
 
 # ===============================================
-# setup-logrotate.sh — Configuración de rotación de logs
+# Configuración de rotación de logs
 # ===============================================
 # Puede ejecutarse directamente o copiarse línea a línea.
 # Asegura que logrotate esté instalado y ajusta las reglas
 # de rsyslog y ufw para limitar el tamaño máximo de logs.
 # ===============================================
 
-[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/common/loader.sh
+[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
-setup_logrotate() {
+logrotate_setup() {
   log_info "Iniciando configuración de logrotate..."
 
   # --- Instalación silenciosa ---
@@ -62,4 +62,4 @@ EOF
   log_info "Configuración de logrotate completada correctamente."
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && setup_logrotate "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && logrotate_setup "$@"

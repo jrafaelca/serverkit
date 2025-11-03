@@ -2,16 +2,16 @@
 set -euo pipefail
 
 # ===============================================
-# hardening-ssh.sh — Configuración segura de SSH
+# Configuración segura de SSH
 # ===============================================
 # Aplica políticas seguras de acceso remoto y crea
 # una regla de logrotate para /var/log/auth.log.
 # ===============================================
 
 # Carga entorno si no está inicializado
-[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/common/loader.sh
+[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
-harden_ssh() {
+ssh_hardening() {
   log_info "Iniciando endurecimiento de SSH..."
 
   # --- Configuración segura ---
@@ -67,4 +67,4 @@ EOF
   fi
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && harden_ssh "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && ssh_hardening "$@"

@@ -2,16 +2,16 @@
 set -euo pipefail
 
 # ===============================================
-# setup-pgbouncer.sh — Instalación y configuración de PgBouncer
+# Instalación y configuración de PgBouncer
 # ===============================================
 # Instala PgBouncer, crea usuario administrativo,
 # habilita TLS (TLSv1–TLSv1.3) y aplica parámetros
 # de conexión recomendados con hardening de servicio.
 # ===============================================
 
-[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/common/loader.sh
+[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
-setup_pgbouncer() {
+pgbouncer_setup() {
   log_info "Instalando y configurando PgBouncer..."
 
   # --- Paquetes ---
@@ -148,17 +148,20 @@ EOF
   fi
 
   echo
-  echo "==============================================="
   echo "PgBouncer instalado correctamente."
-  echo "Admin user : ${PGADMIN_USER}"
-  echo "Admin pass : ${PGADMIN_PASS}"
-  echo "Puerto     : 6432"
-  echo "TLS        : habilitado (TLSv1–TLSv1.3)"
-  echo "Modo pool  : transaction"
-  echo
-  echo "Para limpiar del historial los datos sensibles, ejecuta (una sola línea):"
-  echo "  history -c && history -w && rm -f ~/.bash_history"
-  echo "==========================================="
+
+  if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo "==============================================="
+    echo "Admin user : ${PGADMIN_USER}"
+    echo "Admin pass : ${PGADMIN_PASS}"
+    echo "Puerto     : 6432"
+    echo "TLS        : habilitado (TLSv1–TLSv1.3)"
+    echo "Modo pool  : transaction"
+    echo
+    echo "Para limpiar del historial los datos sensibles, ejecuta (una sola línea):"
+    echo "  history -c && history -w && rm -f ~/.bash_history"
+    echo "==========================================="
+  fi
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && setup_pgbouncer "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && pgbouncer_setup "$@"
