@@ -7,7 +7,7 @@
 #  - Verifica permisos y sistema operativo
 # ===============================================
 
-BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 # --- Evita doble carga ---
 if [[ -n "${SERVERKIT_ENV_INITIALIZED:-}" ]]; then
