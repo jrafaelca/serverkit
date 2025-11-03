@@ -43,18 +43,24 @@ add_job() {
     exit 1
   fi
 
-  # Insertar el nuevo job después del bloque de scrape_configs
-  awk -v job_file="$JOB_FILE" '
-    /scrape_configs:/ && !x {print; system("sed \"s/^/  /\" " job_file); x=1; next}
-    1
-  ' "$PROM_CONFIG" > "${PROM_CONFIG}.tmp" && mv "${PROM_CONFIG}.tmp" "$PROM_CONFIG"
+# Insertar el nuevo job después del bloque de scrape_configs
+awk -v job_file="$JOB_FILE" '
+  /scrape_configs:/ && !x {
+    print;
+    print "";
+    system("sed \"s/^/  /\" " job_file);
+    print "";
+    x=1; next
+  }
+  1
+' "$PROM_CONFIG" > "${PROM_CONFIG}.tmp" && mv "${PROM_CONFIG}.tmp" "$PROM_CONFIG"
 
   chown prometheus:prometheus "$PROM_CONFIG"
   chmod 640 "$PROM_CONFIG"
 
   # Recargar Prometheus
   log_info "Recargando Prometheus..."
-  systemctl reload prometheus
+  systemctl restart prometheus
 
   if systemctl is-active --quiet prometheus; then
     log_info "✅ Job '${JOB_NAME}' agregado correctamente y Prometheus recargado."
