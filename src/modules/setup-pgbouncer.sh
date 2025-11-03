@@ -155,7 +155,10 @@ EOF
   echo "Puerto     : 6432"
   echo "TLS        : habilitado (TLSv1–TLSv1.3)"
   echo "Modo pool  : transaction"
-  echo "==============================================="
+  echo
+  echo "Para limpiar del historial los datos sensibles, ejecuta (una sola línea):"
+  echo "  history -c && history -w && rm -f ~/.bash_history"
+  echo "==========================================="
 }
 
 [[ "${BASH_SOURCE[0]}" == "${0}" ]] && setup_pgbouncer "$@"
