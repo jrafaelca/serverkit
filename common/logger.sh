@@ -17,7 +17,7 @@ log_start() {
   {
     echo "==============================================="
     echo "Inicio de módulo: ${SCRIPT_NAME:-desconocido}"
-    echo "Host: ${HOSTNAME:-$(hostname)}"
+    echo "Host: $(hostname)"
     echo "Fecha: $(date '+%Y-%m-%d %H:%M:%S')"
     echo "-----------------------------------------------"
   } >> "$LOG_FILE"
