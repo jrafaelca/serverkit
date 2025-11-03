@@ -15,7 +15,7 @@ source /opt/serverkit/common/loader.sh
 
 # --- Carga módulos principales ---
 source /opt/serverkit/scripts/system/system_update.sh
-source /opt/serverkit/scripts/system/user-setup.sh
+source /opt/serverkit/scripts/add-serverkit-user.sh
 source /opt/serverkit/scripts/system/ssh-hardening.sh
 source /opt/serverkit/scripts/system/swap-setup.sh
 source /opt/serverkit/scripts/system/timezone-setup.sh
@@ -38,7 +38,7 @@ main() {
 
   # --- Ejecución de módulos principales ---
   system_update
-  user_setup
+  add_serverkit_user
   ssh_hardening
   swap_setup
   timezone_setup
@@ -46,7 +46,7 @@ main() {
   fail2ban_setup
 
   # --- Configuración del limpiador automático ---
-  cleaner_setup
+  serverkit_cleaner_setup
 
   # --- Marcador de instalación ---
   touch /opt/serverkit/.provisioned

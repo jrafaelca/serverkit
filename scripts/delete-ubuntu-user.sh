@@ -2,16 +2,16 @@
 set -euo pipefail
 
 # ===============================================
-# clean-default-user.sh — Eliminación del usuario 'ubuntu'
+# Eliminación del usuario 'ubuntu'
 # ===============================================
 # Elimina el usuario predeterminado 'ubuntu' solo si
 # existe al menos otro usuario con privilegios sudo.
 # ===============================================
 
-# --- Carga entorno base ---
-source /opt/serverkit/common/loader.sh
+# Carga entorno si no está inicializado
+[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
-main() {
+delete_ubuntu_user() {
   log_start
 
   # --- Verifica si 'ubuntu' existe ---
@@ -41,4 +41,4 @@ main() {
   log_end
 }
 
-main "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && delete_ubuntu_user "$@"

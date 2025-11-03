@@ -11,7 +11,7 @@ set -euo pipefail
 
 [[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
-cleaner_setup() {
+serverkit_cleaner_setup() {
   log_info "Iniciando configuración de limpieza automática..."
 
   # --- Crea directorio si no existe ---
@@ -51,4 +51,4 @@ EOF
   fi
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && cleaner_setup "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && serverkit_cleaner_setup "$@"

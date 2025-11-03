@@ -8,12 +8,12 @@ set -euo pipefail
 # contraseña aleatoria y una clave SSH segura.
 # ===============================================
 
-USERNAME="serverkit"
-
 [[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
-user_setup() {
+add_serverkit_user() {
   log_info "Iniciando creación del usuario administrativo '${USERNAME}'..."
+
+  USERNAME="serverkit"
 
   # --- Verifica si ya existe ---
   if id "$USERNAME" &>/dev/null; then
@@ -69,4 +69,4 @@ user_setup() {
   fi
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && user_setup "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && add_serverkit_user "$@"
