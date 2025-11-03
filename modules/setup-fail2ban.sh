@@ -37,7 +37,7 @@ setup_fail2ban() {
   CONF_FILE="/etc/logrotate.d/fail2ban"
   if [[ -f "$CONF_FILE" ]] && ! grep -q "maxsize" "$CONF_FILE"; then
     sed -i -E '/^(\s*)(daily|weekly|monthly|yearly)/a \ \ maxsize 100M' "$CONF_FILE"
-    grep -q "maxsize" "$CONF_FILE" || echo "  maxsize 50M" >> "$CONF_FILE"
+    grep -q "maxsize" "$CONF_FILE" || echo "  maxsize 100M" >> "$CONF_FILE"
   fi
 
   log_info "✅ Configuración de Fail2Ban completada correctamente."
