@@ -43,16 +43,16 @@ add_job() {
     exit 1
   fi
 
-# Insertar el nuevo job después del bloque de scrape_configs
+# Insertar el nuevo job
 awk -v job_file="$JOB_FILE" '
-  /scrape_configs:/ && !x {
-    print;
-    print "";
-    system("sed \"s/^/  /\" " job_file);
-    print "";
-    x=1; next
+  /^  - job_name:/ {last=NR}
+  {lines[NR]=$0}
+  END {
+    for (i=1; i<=NR; i++) print lines[i]
+    print ""
+    system("sed \"s/^/  /\" " job_file)
+    print ""
   }
-  1
 ' "$PROM_CONFIG" > "${PROM_CONFIG}.tmp" && mv "${PROM_CONFIG}.tmp" "$PROM_CONFIG"
 
   chown prometheus:prometheus "$PROM_CONFIG"
