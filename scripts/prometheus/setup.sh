@@ -7,6 +7,7 @@ set -euo pipefail
 # Descarga e instala la última versión estable de Prometheus
 # desde GitHub. Crea el usuario, directorios, configuración base
 # y servicio systemd para ejecución en producción.
+# Compatible con re-ejecuciones
 # ===============================================
 
 [[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
@@ -14,15 +15,16 @@ set -euo pipefail
 prometheus_setup() {
   log_info "Iniciando instalación de Prometheus..."
 
-  SERVICE="/etc/systemd/system/prometheus.service"
-  BIN_PATH="/usr/local/bin/prometheus"
-  DATA_DIR="/var/lib/prometheus"
-  CONFIG_DIR="/etc/prometheus"
-  OPT_DIR="/opt/prometheus"
+  local SERVICE="/etc/systemd/system/prometheus.service"
+  local BIN_PATH="/usr/local/bin/prometheus"
+  local BIN_TOOL="/usr/local/bin/promtool"
+  local DATA_DIR="/var/lib/prometheus"
+  local CONFIG_DIR="/etc/prometheus"
+  local OPT_DIR="/opt/prometheus"
 
   # --- Crear usuario prometheus ---
   if ! id -u prometheus >/dev/null 2>&1; then
-    useradd --no-create-home --shell /usr/sbin/nologin --scripts prometheus
+    useradd --no-create-home --shell /usr/sbin/nologin --system prometheus
     log_info "Usuario 'prometheus' creado."
   else
     log_info "Usuario 'prometheus' ya existe, omitiendo creación."
@@ -33,6 +35,7 @@ prometheus_setup() {
 
   # --- Descargar la última versión ---
   log_info "Descargando la última versión de Prometheus..."
+  local LATEST_URL
   LATEST_URL=$(curl -s https://api.github.com/repos/prometheus/prometheus/releases/latest \
     | grep browser_download_url \
     | grep linux-amd64 \
@@ -43,28 +46,32 @@ prometheus_setup() {
     exit 1
   fi
 
+  local VERSION
   VERSION=$(basename "$LATEST_URL" | grep -oP '(?<=prometheus-)[0-9.]+')
   log_info "Versión detectada: ${VERSION}"
 
   cd /usr/local/bin
+
+  # --- Descarga y extracción ---
   wget -q "$LATEST_URL" -O prometheus.tar.gz
   tar -xzf prometheus.tar.gz
 
   # --- Mover binarios ---
-  mv prometheus-*/prometheus .
-  mv prometheus-*/promtool .
-  chmod +x "$BIN_PATH" /usr/local/bin/promtool
+  mv -f prometheus-*/prometheus "$BIN_PATH"
+  mv -f prometheus-*/promtool "$BIN_TOOL"
+  chmod +x "$BIN_PATH" "$BIN_TOOL"
 
   # --- Copiar consolas ---
-  cp -r prometheus-*/consoles "$OPT_DIR/"
-  cp -r prometheus-*/console_libraries "$OPT_DIR/"
+  cp -r prometheus-*/consoles "$OPT_DIR/" 2>/dev/null || true
+  cp -r prometheus-*/console_libraries "$OPT_DIR/" 2>/dev/null || true
 
-  # --- Limpieza ---
+  # --- Limpieza temporal ---
   rm -rf prometheus-* prometheus.tar.gz
 
-  # --- Configuración base mínima ---
-  log_info "Creando configuración base..."
-  cat > "${CONFIG_DIR}/prometheus.yml" <<EOF
+  # --- Crear configuración base si no existe ---
+  if [[ ! -f "${CONFIG_DIR}/prometheus.yml" ]]; then
+    log_info "Creando configuración base..."
+    cat > "${CONFIG_DIR}/prometheus.yml" <<EOF
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
@@ -74,9 +81,13 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 EOF
+  else
+    log_info "Archivo de configuración existente, omitiendo creación."
+  fi
 
   chown -R prometheus:prometheus "$CONFIG_DIR"
-  chmod 640 "${CONFIG_DIR}/prometheus.yml"
+  find "$CONFIG_DIR" -type f -name '*.yml' -exec chmod 640 {} \;
+  find "$CONFIG_DIR" -type d -exec chmod 750 {} \;
 
   # --- Crear servicio systemd ---
   log_info "Creando servicio systemd..."
@@ -111,30 +122,26 @@ EOF
   systemctl daemon-reload
   systemctl enable --now prometheus
 
-  sleep 3
+  sleep 2
 
-  # --- Validación ---
+  # --- Validación de estado ---
   if systemctl is-active --quiet prometheus; then
-    log_info "Prometheus iniciado correctamente."
+    log_info "✅ Prometheus iniciado correctamente."
   else
-    log_error "El servicio prometheus no se inició correctamente."
+    log_error "⚠️  El servicio prometheus no se inició correctamente. Revisa los logs con:"
+    echo "   journalctl -u prometheus -n 30 -xe"
   fi
 
   echo
-  echo "✅ Prometheus instalado correctamente."
-
-  if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    echo "==============================================="
-    echo "Versión: ${VERSION}"
-    echo "Configuración: ${CONFIG_DIR}/prometheus.yml"
-    echo "Datos: ${DATA_DIR}"
-    echo "Binarios: ${BIN_PATH}, /usr/local/bin/promtool"
-    echo "Endpoint: http://$(hostname -I | awk '{print $1}'):9090"
-    echo
-    echo "Para limpiar el historial de shell:"
-    echo "  history -c && history -w && rm -f ~/.bash_history"
-    echo "==============================================="
-  fi
+  echo "==============================================="
+  echo " Prometheus instalado correctamente "
+  echo "==============================================="
+  echo "Versión       : ${VERSION}"
+  echo "Configuración : ${CONFIG_DIR}/prometheus.yml"
+  echo "Datos         : ${DATA_DIR}"
+  echo "Binarios      : ${BIN_PATH}, ${BIN_TOOL}"
+  echo "Endpoint      : http://$(hostname -I | awk '{print $1}'):9090"
+  echo "==============================================="
 }
 
 [[ "${BASH_SOURCE[0]}" == "${0}" ]] && prometheus_setup "$@"
