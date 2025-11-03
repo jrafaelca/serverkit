@@ -12,7 +12,7 @@ set -euo pipefail
 #   ./add-job.sh pgbouncer.yml
 # ===============================================
 
-[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/common/loader.sh 2>/dev/null || true
+[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh 2>/dev/null || true
 
 add_job() {
   local JOB_NAME="${1:-}"
