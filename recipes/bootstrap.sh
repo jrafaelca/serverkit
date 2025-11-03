@@ -14,14 +14,14 @@ set -euo pipefail
 source /opt/serverkit/common/loader.sh
 
 # --- Carga módulos principales ---
-source /opt/serverkit/scripts/system-setup.sh
-source /opt/serverkit/scripts/user-setup.sh
-source /opt/serverkit/scripts/ssh-hardening.sh
-source /opt/serverkit/scripts/swap-setup.sh
-source /opt/serverkit/scripts/timezone-setup.sh
+source /opt/serverkit/scripts/system/system_update.sh
+source /opt/serverkit/scripts/system/user-setup.sh
+source /opt/serverkit/scripts/system/ssh-hardening.sh
+source /opt/serverkit/scripts/system/swap-setup.sh
+source /opt/serverkit/scripts/system/timezone-setup.sh
+source /opt/serverkit/scripts/logrotate/logrotate-setup.sh
+source /opt/serverkit/scripts/fail2ban/fail2ban-setup.sh
 source /opt/serverkit/scripts/cleaner-setup.sh
-source /opt/serverkit/scripts/logrotate-setup.sh
-source /opt/serverkit/scripts/fail2ban-setup.sh
 
 main() {
   log_start
@@ -37,14 +37,16 @@ main() {
   echo "-------------------------------------------"
 
   # --- Ejecución de módulos principales ---
-  system_setup
+  system_update
   user_setup
   ssh_hardening
   swap_setup
   timezone_setup
-  cleaner_setup
   logrotate_setup
   fail2ban_setup
+
+  # --- Configuración del limpiador automático ---
+  cleaner_setup
 
   # --- Marcador de instalación ---
   touch /opt/serverkit/.provisioned

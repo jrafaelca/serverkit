@@ -8,7 +8,7 @@ set -euo pipefail
 # Compatible tanto con sistemas con systemd como sin él.
 # ===============================================
 
-[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scommon/loader.sh
+[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
 timezone_setup() {
   log_info "Iniciando configuración de zona horaria a UTC..."

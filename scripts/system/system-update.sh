@@ -10,7 +10,7 @@ set -euo pipefail
 
 [[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
-system_setup() {
+system_update() {
   log_info "Iniciando actualización del sistema base..."
 
   # --- Ajuste de timeout para evitar conflictos con dpkg locks (apt concurrente) ---
@@ -82,4 +82,4 @@ EOF
   fi
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && system_setup "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && system_update "$@"
