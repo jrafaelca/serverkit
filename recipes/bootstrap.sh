@@ -15,13 +15,13 @@ source /opt/serverkit/common/loader.sh
 
 # --- Carga módulos principales ---
 source /opt/serverkit/scripts/system/system_update.sh
-source /opt/serverkit/scripts/add-serverkit-user.sh
+source /opt/serverkit/scripts/serverkit/add-user.sh
 source /opt/serverkit/scripts/system/ssh-hardening.sh
 source /opt/serverkit/scripts/system/swap-setup.sh
 source /opt/serverkit/scripts/system/timezone-setup.sh
-source /opt/serverkit/scripts/logrotate/logrotate-setup.sh
-source /opt/serverkit/scripts/fail2ban/fail2ban-setup.sh
-source /opt/serverkit/scripts/cleaner-setup.sh
+source /opt/serverkit/scripts/logrotate/setup.sh
+source /opt/serverkit/scripts/fail2ban/setup.sh
+source /opt/serverkit/scripts/serverkit/cleaner-setup.sh
 
 main() {
   log_start
