@@ -31,7 +31,7 @@ LoginGraceTime 30
 MaxAuthTries 3
 AllowTcpForwarding no
 EOF
-  log_info "Archivo de configuración SSH creado: /etc/ssh/sshd_config.d/49-serverkit.conf"
+  log_info "Archivo de configuración SSH creado: /etc/ssh/sshd_config.d/89-serverkit.conf"
 
   # --- Claves host SSH ---
   ssh-keygen -A
@@ -56,12 +56,19 @@ EOF
     log_info "Regla de logrotate creada: $TARGET_FILE"
   fi
 
+  # --- Asegura el directorio de runtime ---
+  if [[ ! -d /run/sshd ]]; then
+    mkdir -p /run/sshd
+    chmod 755 /run/sshd
+    log_info "Directorio /run/sshd creado para privilegios de SSH."
+  fi
+
   # --- Validación ---
   if sshd -t >/dev/null 2>&1; then
     log_info "✅ Validación de configuración SSH exitosa."
     log_info "✅ Endurecimiento SSH completado correctamente."
   else
-    log_error "❌ Error en configuración SSH. Revisa /etc/ssh/sshd_config.d/49-serverkit.conf"
+    log_error "❌ Error en configuración SSH. Revisa /etc/ssh/sshd_config.d/89-serverkit.conf"
     return 1
   fi
 }

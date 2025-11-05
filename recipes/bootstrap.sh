@@ -58,7 +58,6 @@ main() {
   echo "Usuario administrativo: serverkit"
   echo "Contraseña temporal: ${RAW_PASSWORD:-'N/A'}"
   echo "-------------------------------------------"
-  echo "Si existen acciones diferidas, se aplicarán al iniciar la próxima sesión root."
   echo
   echo "Para limpiar del historial los datos sensibles, ejecuta (una sola línea):"
   echo "  history -c && history -w && rm -f ~/.bash_history"
