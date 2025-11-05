@@ -19,7 +19,6 @@ export SERVERKIT_ENV_INITIALIZED=1
 for lib in \
   "$BASE_DIR/scripts/common/env.sh" \
   "$BASE_DIR/scripts/common/logger.sh" \
-  "$BASE_DIR/scripts/common/utils.sh"
 do
   [[ -f "$lib" ]] && source "$lib"
 done
