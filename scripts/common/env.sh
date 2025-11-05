@@ -17,9 +17,9 @@
 export DEBIAN_FRONTEND=noninteractive
 
 # --- Directorios y rutas estándar ---
-export SERVERKIT_BASE_DIR="/opt/serverkit"
-export SERVERKIT_LOG_DIR="/var/log"
-export LOG_FILE="$SERVERKIT_LOG_DIR/serverkit.log"
+export BASE_DIR="/opt/serverkit"
+export LOG_DIR="/var/log"
+export LOG_FILE="$LOG_DIR/serverkit.log"
 
 # --- Contexto del script ---
 export SCRIPT_NAME="$(basename "${BASH_SOURCE[-1]}")"

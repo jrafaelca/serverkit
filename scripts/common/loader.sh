@@ -7,8 +7,6 @@
 #  - Verifica permisos y sistema operativo
 # ===============================================
 
-BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-
 # --- Evita doble carga ---
 if [[ -n "${SERVERKIT_ENV_INITIALIZED:-}" ]]; then
   return 0
@@ -17,8 +15,8 @@ export SERVERKIT_ENV_INITIALIZED=1
 
 # --- Carga dependencias comunes ---
 for lib in \
-  "$BASE_DIR/scripts/common/env.sh" \
-  "$BASE_DIR/scripts/common/logger.sh"
+  "/opt/serverkit/scripts/common/env.sh" \
+  "/opt/serverkit/scripts/common/logger.sh"
 do
   [[ -f "$lib" ]] && source "$lib"
 done

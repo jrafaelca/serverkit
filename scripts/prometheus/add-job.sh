@@ -12,14 +12,12 @@ set -euo pipefail
 #   ./add-job.sh pgbouncer.yml
 # ===============================================
 
-[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh 2>/dev/null || true
+[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
 add_job() {
   local JOB_NAME="${1:-}"
   local PROM_CONFIG="/etc/prometheus/prometheus.yml"
-  local BASE_DIR
-  BASE_DIR="$(dirname "$0")"
-  local JOB_FILE="${BASE_DIR}/jobs/${JOB_NAME}"
+  local JOB_FILE="${BASE_DIR}/scripts/prometheus/jobs/${JOB_NAME}"
 
   if [[ -z "$JOB_NAME" ]]; then
     log_error "Debes indicar el nombre del job. Ejemplo:"
@@ -43,17 +41,17 @@ add_job() {
     exit 1
   fi
 
-# Insertar el nuevo job
-awk -v job_file="$JOB_FILE" '
-  /^  - job_name:/ {last=NR}
-  {lines[NR]=$0}
-  END {
-    for (i=1; i<=NR; i++) print lines[i]
-    print ""
-    system("sed \"s/^/  /\" " job_file)
-    print ""
-  }
-' "$PROM_CONFIG" > "${PROM_CONFIG}.tmp" && mv "${PROM_CONFIG}.tmp" "$PROM_CONFIG"
+  # Insertar el nuevo job
+  awk -v job_file="$JOB_FILE" '
+    /^  - job_name:/ {last=NR}
+    {lines[NR]=$0}
+    END {
+      for (i=1; i<=NR; i++) print lines[i]
+      print ""
+      system("sed \"s/^/  /\" " job_file)
+      print ""
+    }
+  ' "$PROM_CONFIG" > "${PROM_CONFIG}.tmp" && mv "${PROM_CONFIG}.tmp" "$PROM_CONFIG"
 
   chown prometheus:prometheus "$PROM_CONFIG"
   chmod 640 "$PROM_CONFIG"
