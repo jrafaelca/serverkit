@@ -18,7 +18,7 @@ export SERVERKIT_ENV_INITIALIZED=1
 # --- Carga dependencias comunes ---
 for lib in \
   "$BASE_DIR/scripts/common/env.sh" \
-  "$BASE_DIR/scripts/common/logger.sh" \
+  "$BASE_DIR/scripts/common/logger.sh"
 do
   [[ -f "$lib" ]] && source "$lib"
 done
