@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
 # ===============================================
 # bootstrap.sh — Inicialización principal de ServerKit

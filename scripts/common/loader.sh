@@ -34,7 +34,7 @@ if [[ ! -f /etc/os-release ]]; then
   exit 1
 fi
 
-source /etc/os-release
+source /etc/os-release || true
 SUPPORTED_VERSIONS=("22.04" "24.04")
 
 if [[ "$NAME" != "Ubuntu" ]] || [[ ! " ${SUPPORTED_VERSIONS[*]} " =~ ${VERSION_ID} ]]; then
@@ -46,3 +46,5 @@ log_info "Entorno verificado: $PRETTY_NAME"
 
 # --- Marcador de validación ---
 export SERVERKIT_VALIDATED=1
+
+return 0
