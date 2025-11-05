@@ -52,14 +52,10 @@ main() {
   touch /opt/serverkit/.provisioned
 
   # --- Información final ---
-  local ip_address
-  ip_address=$(curl -s ifconfig.me || echo "desconocida")
-
   echo
   echo "==========================================="
   echo "Servidor aprovisionado correctamente."
   echo "Hostname: $(hostname)"
-  echo "Dirección IP pública: ${ip_address}"
   echo "Usuario administrativo: serverkit"
   echo "Contraseña temporal: ${RAW_PASSWORD:-'N/A'}"
   echo "-------------------------------------------"
