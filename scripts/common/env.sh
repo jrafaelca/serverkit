@@ -14,7 +14,6 @@
 
 # --- Configuración base ---
 # Habilita modo estricto: error si variable no definida o comando falla
-set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
 # --- Directorios y rutas estándar ---
