@@ -5,3 +5,9 @@
 # Environment files
 .env*
 !.env.example
+
+# Ignore provisioned files
+.provisioned
+
+# Ignore scripts
+cleanup.sh
