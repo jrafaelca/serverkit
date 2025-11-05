@@ -30,17 +30,20 @@ export NVM_DIR="$NVM_DIR"
 [ -s "\$NVM_DIR/nvm.sh" ] && \. "\$NVM_DIR/nvm.sh"
 EOF
     chmod 644 "$PROFILE_SCRIPT"
-
-    # 🔹 Cargar NVM en la sesión actual
-    export NVM_DIR="$NVM_DIR"
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
   fi
 
-  # --- Carga NVM (por si ya existía) ---
+  # --- Carga NVM (forzado para shell no interactivo) ---
   export NVM_DIR="$NVM_DIR"
-  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+  if [[ -s "$NVM_DIR/nvm.sh" ]]; then
+    # shellcheck source=/usr/local/nvm/nvm.sh
+    . "$NVM_DIR/nvm.sh"
+    log_info "NVM cargado correctamente desde $NVM_DIR."
+  else
+    log_error "No se encontró NVM en $NVM_DIR. Abortando instalación."
+    return 1
+  fi
 
-  # --- Instala Node.js (última LTS estable) ---
+  # --- Instala Node.js (última versión LTS) ---
   if command -v node >/dev/null 2>&1; then
     log_info "Node.js ya instalado: $(node -v)"
   else
