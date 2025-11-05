@@ -11,7 +11,7 @@ set -euo pipefail
 # ===============================================
 
 # --- Carga entorno base ---
-source /opt/serverkit/common/loader.sh
+source /opt/serverkit/scripts/common/loader.sh
 
 # --- Carga módulos principales ---
 source /opt/serverkit/scripts/system/system_update.sh
