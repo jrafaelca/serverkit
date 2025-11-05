@@ -14,7 +14,7 @@ set -euo pipefail
 source /opt/serverkit/scripts/common/loader.sh
 
 # --- Carga módulos principales ---
-source /opt/serverkit/scripts/system/system_update.sh
+source /opt/serverkit/scripts/system/system-update.sh
 source /opt/serverkit/scripts/serverkit/add-user.sh
 source /opt/serverkit/scripts/system/ssh-hardening.sh
 source /opt/serverkit/scripts/system/swap-setup.sh
