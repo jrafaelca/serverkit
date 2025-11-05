@@ -24,4 +24,3 @@ export LOG_FILE="$SERVERKIT_LOG_DIR/serverkit.log"
 # --- Contexto del script ---
 export SCRIPT_NAME="$(basename "${BASH_SOURCE[-1]}")"
 export START_TIME="$(date +%s)"
-export SERVERKIT_SESSION_ID="$(date +%Y%m%d-%H%M%S)"
