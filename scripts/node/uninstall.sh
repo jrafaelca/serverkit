@@ -15,7 +15,6 @@ uninstall_node() {
   local NODE_HOME="/home/${NODE_USER}"
   local FNM_PATH="${NODE_HOME}/.local/share/fnm"
   local SHELL_RC="${NODE_HOME}/.bashrc"
-  local NODE_APPS="/opt/apps/node"
 
   log_info "🧹 Eliminando Node.js y FNM'..."
 
@@ -40,9 +39,6 @@ EOF
   if grep -q '# fnm' "$SHELL_RC"; then
     sed -i '/# fnm/,/fi/d' "$SHELL_RC" 2>/dev/null || true
   fi
-
-  # --- Limpia directorio de apps ---
-  rm -rf "$NODE_APPS"/* || true
 
   log_info "✅ Desinstalación completada. Entorno Node.js removido."
 }
