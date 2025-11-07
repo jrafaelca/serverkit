@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -e
 
 # ===============================================
 # bootstrap.sh — Inicialización principal de ServerKit

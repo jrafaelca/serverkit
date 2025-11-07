@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -e
 
 # ===============================================
 # Desinstalación de Node.js (via FNM)

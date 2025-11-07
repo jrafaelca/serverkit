@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -e
 
 # ===============================================
 # Desinstalación de PM2 (Administrador de Procesos Node.js)

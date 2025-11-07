@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -e
 
 # ===============================================
 # Configuración de limpieza automática
@@ -19,8 +18,7 @@ setup_serverkit_cleaner() {
 
   # --- Script de limpieza ---
   cat > /opt/serverkit/cleanup.sh <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
+#!/usr/bin/env bashuo pipefail
 
 UID_MIN=$(awk '/^UID_MIN/ {print $2}' /etc/login.defs)
 UID_MAX=$(awk '/^UID_MAX/ {print $2}' /etc/login.defs)

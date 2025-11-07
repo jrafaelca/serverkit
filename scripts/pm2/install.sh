@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -e
 
 # ===============================================
 # Instalación de PM2 (Administrador de Procesos Node.js)
