@@ -23,13 +23,16 @@ install_pm2() {
     return 1
   fi
 
-  if ! sudo -u "$NODE_USER" bash -c 'command -v npm >/dev/null 2>&1'; then
+  if ! sudo -u "$NODE_USER" bash -c 'command -v fnm >/dev/null 2>&1'; then
     log_warn "⚠️ Node.js no está instalado. Ejecutando install_node()..."
     install_node
   fi
 
 sudo -u "$NODE_USER" bash <<'EOF'
+  set -e
 
+  export PATH="$HOME/.local/share/fnm:$PATH"
+  eval "$(fnm env --shell bash)"
 
   npm install -g pm2 >/dev/null 2>&1
   pm2 -v || { echo "❌ Error al instalar PM2"; exit 1; }
