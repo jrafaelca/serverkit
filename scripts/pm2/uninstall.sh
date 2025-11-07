@@ -31,8 +31,6 @@ uninstall_pm2() {
 
   # --- Limpia daemon y configuración del usuario ---
 sudo -u "$NODE_USER" bash <<'EOF'
-  set -e
-
   export PATH="$HOME/.local/share/fnm:$PATH"
   eval "$(fnm env --shell bash)"
 

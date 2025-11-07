@@ -28,16 +28,17 @@ install_pm2() {
   fi
 
 sudo -u "$NODE_USER" bash <<'EOF'
-  set -e
-
   export PATH="$HOME/.local/share/fnm:$PATH"
   eval "$(fnm env --shell bash)"
 
   npm install -g pm2 >/dev/null 2>&1
   pm2 -v || { echo "❌ Error al instalar PM2"; exit 1; }
 
+  pm2 ping >/dev/null 2>&1 || pm2 resurrect >/dev/null 2>&1 || pm2 start echo "PM2 daemon started" >/dev/null 2>&1
+
+  sleep 1
+
   pm2 startup systemd -u \$USER --hp \$HOME --silent
-  pm2 save >/dev/null 2>&1
 
   pm2 install pm2-logrotate >/dev/null 2>&1
   pm2 set pm2-logrotate:max_size 100M >/dev/null 2>&1

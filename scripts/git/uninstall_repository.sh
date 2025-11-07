@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-set -e
 
 # ===============================================
-# uninstall_repository.sh — Desinstalación de Repositorio SSH
+# Desinstalación de Repositorio SSH
 # ===============================================
 # Elimina la deploy key, el alias SSH y la carpeta
 # del proyecto basándose en su ruta local.

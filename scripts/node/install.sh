@@ -26,8 +26,6 @@ install_node() {
 
   # --- Ejecuta instalación bajo el usuario 'serverkit' ---
 sudo -u "$NODE_USER" bash <<'EOF'
-  set -e
-
   if ! command -v fnm >/dev/null 2>&1; then
     curl -fsSL https://fnm.vercel.app/install | bash >/dev/null 2>&1
   fi
