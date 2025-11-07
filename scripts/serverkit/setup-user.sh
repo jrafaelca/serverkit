@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 # ===============================================
 # Creación del usuario administrativo 'serverkit'
@@ -9,7 +10,7 @@
 
 [[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
-add_serverkit_user() {
+setup_serverkit_user() {
   log_info "Iniciando creación del usuario administrativo '${USERNAME}'..."
 
   USERNAME="serverkit"
@@ -68,4 +69,4 @@ add_serverkit_user() {
   fi
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && add_serverkit_user "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && setup_serverkit_user "$@"

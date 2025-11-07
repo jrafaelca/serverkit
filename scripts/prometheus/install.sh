@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 # ===============================================
 # Instalación de Prometheus
@@ -11,7 +12,7 @@
 
 [[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
-prometheus_setup() {
+install_prometheus() {
   log_info "Iniciando instalación de Prometheus..."
 
   local SERVICE="/etc/systemd/system/prometheus.service"
@@ -143,4 +144,4 @@ EOF
   echo "==============================================="
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && prometheus_setup "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && install_prometheus "$@"

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 # ===============================================
 # Configuración de zona horaria a UTC
@@ -9,7 +10,7 @@
 
 [[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
-timezone_setup() {
+setup_system_timezone() {
   log_info "Iniciando configuración de zona horaria a UTC..."
 
   # --- Intenta establecer la zona horaria ---
@@ -30,4 +31,4 @@ timezone_setup() {
   fi
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && timezone_setup "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && setup_system_timezone "$@"

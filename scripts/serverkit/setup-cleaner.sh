@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 # ===============================================
 # Configuración de limpieza automática
@@ -10,7 +11,7 @@
 
 [[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
-serverkit_cleaner_setup() {
+setup_serverkit_cleaner() {
   log_info "Iniciando configuración de limpieza automática..."
 
   # --- Crea directorio si no existe ---
@@ -50,4 +51,4 @@ EOF
   fi
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && serverkit_cleaner_setup "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && setup_serverkit_cleaner "$@"

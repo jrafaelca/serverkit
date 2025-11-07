@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 # ===============================================
 # Instalación de Grafana OSS (Open Source)

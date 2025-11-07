@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 # ===============================================
 # Configuración de rotación de logs
@@ -10,7 +11,7 @@
 
 [[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
-logrotate_setup() {
+install_logrotate() {
   log_info "Iniciando configuración de logrotate..."
 
   # --- Instalación silenciosa ---
@@ -61,4 +62,4 @@ EOF
   log_info "Configuración de logrotate completada correctamente."
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && logrotate_setup "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && install_logrotate "$@"

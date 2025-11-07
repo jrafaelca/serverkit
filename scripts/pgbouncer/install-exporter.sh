@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 # ===============================================
 # Instalación de PgBouncer Exporter
@@ -9,7 +10,7 @@
 
 [[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
-pgbouncer_exporter_setup() {
+install_pgbouncer_exporter() {
   log_info "Instalando PgBouncer Exporter..."
 
   USERLIST="/etc/pgbouncer/userlist.txt"
@@ -87,4 +88,4 @@ EOF
   fi
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && pgbouncer_exporter_setup "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && install_pgbouncer_exporter "$@"

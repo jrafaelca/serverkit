@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 # ===============================================
 # Configuración del sistema base
@@ -9,7 +10,7 @@
 
 [[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
-system_update() {
+setup_system() {
   log_info "Iniciando actualización del sistema base..."
 
   # --- Ajuste de timeout para evitar conflictos con dpkg locks (apt concurrente) ---
@@ -81,4 +82,4 @@ EOF
   fi
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && system_update "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && setup_system "$@"

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 # ===============================================
 # Configuración del archivo swap
@@ -9,7 +10,7 @@
 
 [[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
-swap_setup() {
+setup_system_swap() {
   log_info "Iniciando configuración del archivo swap..."
 
   SWAPFILE="/swapfile"
@@ -59,4 +60,4 @@ swap_setup() {
   fi
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && swap_setup "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && setup_system_swap "$@"

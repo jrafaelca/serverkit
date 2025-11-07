@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 # ===============================================
 # bootstrap.sh — Inicialización principal de ServerKit
@@ -12,15 +13,17 @@
 # --- Carga entorno base ---
 source /opt/serverkit/scripts/common/loader.sh
 
-# --- Carga módulos principales ---
-source /opt/serverkit/scripts/system/system-update.sh
-source /opt/serverkit/scripts/serverkit/add-user.sh
-source /opt/serverkit/scripts/system/ssh-hardening.sh
-source /opt/serverkit/scripts/system/swap-setup.sh
-source /opt/serverkit/scripts/system/timezone-setup.sh
-source /opt/serverkit/scripts/logrotate/setup.sh
-source /opt/serverkit/scripts/fail2ban/setup.sh
-source /opt/serverkit/scripts/serverkit/cleaner-setup.sh
+# --- Carga módulos ---
+source /opt/serverkit/scripts/serverkit/setup-user.sh
+source /opt/serverkit/scripts/serverkit/setup-cleaner.sh
+
+source /opt/serverkit/scripts/system/setup-system.sh
+source /opt/serverkit/scripts/system/setup-ssh.sh
+source /opt/serverkit/scripts/system/setup-swap.sh
+source /opt/serverkit/scripts/system/setup-timezone.sh
+
+source /opt/serverkit/scripts/logrotate/install.sh
+source /opt/serverkit/scripts/fail2ban/install.sh
 
 main() {
   log_start
@@ -35,17 +38,17 @@ main() {
   log_info "Iniciando proceso de aprovisionamiento base de ServerKit..."
   echo "-------------------------------------------"
 
-  # --- Ejecución de módulos principales ---
-  system_update
-  add_serverkit_user
-  ssh_hardening
-  swap_setup
-  timezone_setup
-  logrotate_setup
-  fail2ban_setup
+  # --- Ejecución de módulos ---
+  setup_serverkit_user
+  setup_serverkit_cleaner
 
-  # --- Configuración del limpiador automático ---
-  serverkit_cleaner_setup
+  setup_system
+  setup_system_ssh
+  setup_system_swap
+  setup_system_timezone
+  
+  install_logrotate
+  install_fail2ban
 
   # --- Marcador de instalación ---
   touch /opt/serverkit/.provisioned

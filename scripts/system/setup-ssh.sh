@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 # ===============================================
 # Configuración segura de SSH
@@ -10,7 +11,7 @@
 # Carga entorno si no está inicializado
 [[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
-ssh_hardening() {
+setup_system_ssh() {
   log_info "Iniciando endurecimiento de SSH..."
 
   # --- Configuración segura ---
@@ -73,4 +74,4 @@ EOF
   fi
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && ssh_hardening "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && setup_system_ssh "$@"

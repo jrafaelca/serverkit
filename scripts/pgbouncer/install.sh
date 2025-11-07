@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 # ===============================================
 # Instalación y configuración de PgBouncer
@@ -10,7 +11,7 @@
 
 [[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
-pgbouncer_setup() {
+install_pgbouncer() {
   log_info "Instalando y configurando PgBouncer..."
 
   # --- Paquetes ---
@@ -163,4 +164,4 @@ EOF
   fi
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && pgbouncer_setup "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && install_pgbouncer "$@"

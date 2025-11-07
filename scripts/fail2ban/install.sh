@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 # ===============================================
 # Instalación y configuración de Fail2Ban
@@ -10,7 +11,7 @@
 
 [[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
 
-fail2ban_setup() {
+install_fail2ban() {
   log_info "Iniciando instalación y configuración de Fail2Ban..."
 
   # --- Instalación ---
@@ -42,4 +43,4 @@ fail2ban_setup() {
   log_info "✅ Configuración de Fail2Ban completada correctamente."
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && fail2ban_setup "$@"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && install_fail2ban "$@"
