@@ -14,6 +14,7 @@ echo "Iniciando desinstalación de PM2..."
 
 NODE_USER="serverkit"
 NODE_HOME="/home/${NODE_USER}"
+FNM_PATH="${NODE_HOME}/.local/share/fnm"
 SERVICE_NAME="pm2-${NODE_USER}.service"
 PM2_DIR="${NODE_HOME}/.pm2"
 
@@ -30,6 +31,15 @@ if ! id "$NODE_USER" &>/dev/null; then
 fi
 
 # ---------------------------------------------------------------
+# Verificar procesos activos
+# ---------------------------------------------------------------
+if pgrep -u "$NODE_USER" pm2 >/dev/null 2>&1; then
+  echo "Se detectaron procesos PM2 activos. Deteniéndolos..."
+  pkill -u "$NODE_USER" pm2 2>/dev/null || true
+  sleep 2
+fi
+
+# ---------------------------------------------------------------
 # Detener servicio systemd si existe
 # ---------------------------------------------------------------
 if systemctl list-units --type=service | grep -q "$SERVICE_NAME"; then
@@ -41,9 +51,10 @@ fi
 # ---------------------------------------------------------------
 # Desinstalar PM2 y limpiar entorno del usuario
 # ---------------------------------------------------------------
-sudo -u "$NODE_USER" bash <<'EOF'
-export PATH="$HOME/.local/share/fnm:$PATH"
-eval "$(fnm env --shell bash)"
+sudo -u "$NODE_USER" bash <<EOF
+set -e
+export PATH="${FNM_PATH}:\$PATH"
+eval "\$(fnm env --shell bash)"
 
 if command -v pm2 >/dev/null 2>&1; then
   echo "Eliminando procesos PM2..."
@@ -57,6 +68,8 @@ if command -v pm2 >/dev/null 2>&1; then
 
   echo "Desinstalando PM2 global..."
   npm uninstall -g pm2 >/dev/null 2>&1 || true
+else
+  echo "PM2 no está instalado o no se encontró en el entorno del usuario."
 fi
 EOF
 
@@ -78,13 +91,27 @@ if [[ -f "/etc/systemd/system/${SERVICE_NAME}" ]]; then
 fi
 
 # ---------------------------------------------------------------
+# Validación final
+# ---------------------------------------------------------------
+PM2_EXISTS=$(sudo -u "$NODE_USER" bash -c 'command -v pm2 >/dev/null 2>&1 && echo yes || echo no')
+if [[ "$PM2_EXISTS" == "no" && ! -d "$PM2_DIR" && ! -f "/etc/systemd/system/${SERVICE_NAME}" ]]; then
+  STATUS="desinstalado"
+  echo "PM2 desinstalado completamente."
+else
+  STATUS="parcial"
+  echo "Advertencia: podrían persistir algunos archivos o configuraciones."
+fi
+
+# ---------------------------------------------------------------
 # Resumen
 # ---------------------------------------------------------------
 SERVERKIT_SUMMARY+="-------------------------------------------\n"
 SERVERKIT_SUMMARY+="[PM2]\n"
-SERVERKIT_SUMMARY+="Estado: desinstalado\n"
+SERVERKIT_SUMMARY+="Estado: ${STATUS}\n"
 SERVERKIT_SUMMARY+="Usuario: ${NODE_USER}\n"
 SERVERKIT_SUMMARY+="Archivos eliminados: ${PM2_DIR}, /etc/systemd/system/${SERVICE_NAME}\n"
+SERVERKIT_SUMMARY+="Entorno FNM cargado desde: ${FNM_PATH}\n"
+SERVERKIT_SUMMARY+="Procesos previos: controlados automáticamente.\n"
 SERVERKIT_SUMMARY+="-------------------------------------------\n"
 
 # ---------------------------------------------------------------
@@ -92,9 +119,5 @@ SERVERKIT_SUMMARY+="-------------------------------------------\n"
 # ---------------------------------------------------------------
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   echo
-  echo "==========================================="
-  echo "PM2 desinstalado correctamente."
-  echo "==========================================="
   echo -e "$SERVERKIT_SUMMARY"
-  echo
 fi

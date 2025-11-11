@@ -31,7 +31,7 @@ fi
 # ---------------------------------------------------------------
 # Validar instalación de Node.js
 # ---------------------------------------------------------------
-if ! sudo -u "$PM2_USER" bash -c 'command -v fnm >/dev/null 2>&1'; then
+if ! sudo -u "$PM2_USER" bash -lc 'command -v fnm >/dev/null 2>&1'; then
   echo "Node.js no está instalado. Ejecuta primero el instalador de Node.js."
   SERVERKIT_SUMMARY+="-------------------------------------------\n"
   SERVERKIT_SUMMARY+="[PM2]\n"
@@ -43,9 +43,8 @@ fi
 # ---------------------------------------------------------------
 # Instalación de PM2 y configuración
 # ---------------------------------------------------------------
-sudo -u "$PM2_USER" bash <<'EOF'
-export PATH="$HOME/.local/share/fnm:$PATH"
-eval "$(fnm env --shell bash)"
+sudo -u "$PM2_USER" bash -lc '
+set -e
 
 echo "Instalando PM2..."
 npm install -g pm2 >/dev/null 2>&1
@@ -67,16 +66,21 @@ pm2 set pm2-logrotate:max_size 100M >/dev/null 2>&1
 pm2 set pm2-logrotate:retain 3 >/dev/null 2>&1
 pm2 set pm2-logrotate:compress true >/dev/null 2>&1
 pm2 set pm2-logrotate:workerInterval 86400 >/dev/null 2>&1
-pm2 set pm2-logrotate:rotateInterval '0 0 * * *' >/dev/null 2>&1
-pm2 save >/dev/null 2>&1
+pm2 set pm2-logrotate:rotateInterval "0 0 * * *" >/dev/null 2>&1
 
-echo "PM2 instalado y configurado correctamente."
-EOF
+pm2 save >/dev/null 2>&1
+'
+
+# ---------------------------------------------------------------
+# Activar servicio systemd
+# ---------------------------------------------------------------
+systemctl enable pm2-${PM2_USER} >/dev/null 2>&1
+systemctl restart pm2-${PM2_USER} >/dev/null 2>&1
 
 # ---------------------------------------------------------------
 # Validación final
 # ---------------------------------------------------------------
-if sudo -u "$PM2_USER" bash -c 'command -v pm2 >/dev/null 2>&1'; then
+if sudo -u "$PM2_USER" bash -lc 'command -v pm2 >/dev/null 2>&1'; then
   STATUS="instalado"
 else
   STATUS="error"

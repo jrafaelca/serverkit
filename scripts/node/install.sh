@@ -17,6 +17,7 @@ NODE_USER="serverkit"
 NODE_HOME="/home/${NODE_USER}"
 NODE_APPS="/opt/apps/node"
 SHELL_RC="${NODE_HOME}/.bashrc"
+PROFILE_RC="${NODE_HOME}/.profile"
 
 # ---------------------------------------------------------------
 # Validación de usuario
@@ -36,26 +37,44 @@ fi
 sudo -u "$NODE_USER" bash <<'EOF'
 set -e
 
-# Instalar FNM si no existe
 if ! command -v fnm >/dev/null 2>&1; then
+  echo "Instalando FNM..."
   curl -fsSL https://fnm.vercel.app/install | bash >/dev/null 2>&1
 fi
 
-# Configurar entorno
 export PATH="\$HOME/.local/share/fnm:\$PATH"
 eval "\$(fnm env --shell bash)"
 
-# Instalar Node.js LTS
 fnm install --lts >/dev/null 2>&1
 fnm default lts-latest >/dev/null 2>&1
 fnm use default >/dev/null 2>&1
 
-# Activar Corepack y PNPM
 corepack enable >/dev/null 2>&1
 corepack prepare pnpm@latest --activate >/dev/null 2>&1
 
 echo "Node.js \$(node -v) — NPM \$(npm -v) — PNPM \$(pnpm -v)"
 EOF
+
+# ---------------------------------------------------------------
+# Configurar carga automática en shell (bashrc y profile)
+# ---------------------------------------------------------------
+CONFIG_BLOCK=$(cat <<'EOT'
+
+# Cargar entorno FNM en cualquier sesión
+if [ -s "$HOME/.local/share/fnm" ]; then
+  export PATH="$HOME/.local/share/fnm:$PATH"
+  eval "$(fnm env --use-on-cd --shell bash)"
+fi
+EOT
+)
+
+for FILE in "$SHELL_RC" "$PROFILE_RC"; do
+  if ! grep -q 'fnm env' "$FILE" 2>/dev/null; then
+    echo "$CONFIG_BLOCK" >> "$FILE"
+    chown "$NODE_USER":"$NODE_USER" "$FILE"
+    echo "Configuración de entorno FNM añadida en ${FILE}"
+  fi
+done
 
 # ---------------------------------------------------------------
 # Crear estructura base de aplicaciones Node
@@ -66,19 +85,10 @@ chmod 755 "$NODE_APPS"
 echo "Directorio base para aplicaciones Node: ${NODE_APPS}"
 
 # ---------------------------------------------------------------
-# Configurar carga automática en shell
+# Validación final usando entorno real del usuario
 # ---------------------------------------------------------------
-if ! grep -q 'fnm env' "$SHELL_RC"; then
-  echo 'eval "$(fnm env --use-on-cd --shell bash)"' >> "$SHELL_RC"
-  chown "$NODE_USER":"$NODE_USER" "$SHELL_RC"
-  echo "Configuración de entorno FNM añadida en ${SHELL_RC}"
-fi
-
-# ---------------------------------------------------------------
-# Validación final
-# ---------------------------------------------------------------
-NODE_VERSION=$(sudo -u "$NODE_USER" bash -c 'source ~/.bashrc >/dev/null 2>&1; node -v 2>/dev/null' || echo "N/A")
-PNPM_VERSION=$(sudo -u "$NODE_USER" bash -c 'source ~/.bashrc >/dev/null 2>&1; pnpm -v 2>/dev/null' || echo "N/A")
+NODE_VERSION=$(sudo -u "$NODE_USER" bash -lc "node -v 2>/dev/null" || echo "N/A")
+PNPM_VERSION=$(sudo -u "$NODE_USER" bash -lc "pnpm -v 2>/dev/null" || echo "N/A")
 
 if [[ "$NODE_VERSION" != "N/A" ]]; then
   echo "Node.js instalado correctamente."
@@ -106,9 +116,5 @@ SERVERKIT_SUMMARY+="-------------------------------------------\n"
 # ---------------------------------------------------------------
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   echo
-  echo "==========================================="
-  echo "Node.js instalado correctamente."
-  echo "==========================================="
   echo -e "$SERVERKIT_SUMMARY"
-  echo
 fi
