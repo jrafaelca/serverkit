@@ -3,8 +3,16 @@
 # ===============================================
 # Desinstalación de Repositorio SSH
 # ===============================================
-# Elimina la deploy key, el alias SSH y la carpeta
-# del proyecto basándose en su ruta local.
+# Elimina la Deploy Key, el alias SSH y el directorio
+# del proyecto especificado.
+#
+# Ejemplo:
+#   /opt/serverkit/scripts/git/uninstall-repo.sh \
+#       PATH=/opt/apps/listener-node
+#
+# Nota:
+#   - Si el repositorio no existe, el proceso informa y finaliza.
+#   - Solicita confirmación manual si hay TTY disponible.
 # ===============================================
 
 source /opt/serverkit/scripts/common/loader.sh
@@ -18,26 +26,26 @@ SSH_DIR="${APP_HOME}/.ssh"
 SSH_CONFIG="${SSH_DIR}/config"
 
 # ---------------------------------------------------------------
-# Parseo de argumentos (permite ejecución no interactiva)
+# Parseo de argumentos estilo KEY=VALUE
 # ---------------------------------------------------------------
-PROJECT_PATH=""
-
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --path)
-      PROJECT_PATH="$2"
-      shift 2
-      ;;
-    -h|--help)
-      echo "Uso: $0 --path /opt/apps/<repo>"
-      exit 0
+for arg in "$@"; do
+  case "$arg" in
+    PATH=*)
+      PROJECT_PATH="${arg#PATH=}"
       ;;
     *)
-      echo "Opción desconocida: $1"
+      echo "Opción no reconocida: ${arg}"
       exit 1
       ;;
   esac
 done
+
+# Validación básica
+if [[ -z "$PROJECT_PATH" ]]; then
+  echo "Error: debes indicar la ruta del proyecto a eliminar."
+  echo "Ejemplo: $0 PATH=/opt/apps/listener-node"
+  exit 1
+fi
 
 # ---------------------------------------------------------------
 # Validaciones iniciales
@@ -52,35 +60,28 @@ if ! id "$APP_USER" &>/dev/null; then
   exit 1
 fi
 
-if [[ -z "$PROJECT_PATH" ]]; then
-  read -rp "Ingresa la ruta completa del proyecto a eliminar (ej: /opt/apps/listener-node): " PROJECT_PATH
-fi
-
-if [[ -z "$PROJECT_PATH" || ! -d "$PROJECT_PATH" ]]; then
-  echo "Error: la ruta '${PROJECT_PATH}' no es válida o no existe."
+if [[ ! -d "$PROJECT_PATH" ]]; then
+  echo "El directorio '${PROJECT_PATH}' no existe. No hay nada que eliminar."
   SERVERKIT_SUMMARY+="-------------------------------------------\n"
   SERVERKIT_SUMMARY+="[Repositorio SSH]\n"
-  SERVERKIT_SUMMARY+="Error: ruta no válida (${PROJECT_PATH}).\n"
+  SERVERKIT_SUMMARY+="Ruta inexistente: ${PROJECT_PATH}\n"
+  SERVERKIT_SUMMARY+="Estado: sin cambios.\n"
   SERVERKIT_SUMMARY+="-------------------------------------------\n"
   [[ "${BASH_SOURCE[0]}" == "${0}" ]] && echo -e "$SERVERKIT_SUMMARY"
-  exit 1
+  exit 0
 fi
 
 if [[ ! -d "$PROJECT_PATH/.git" ]]; then
-  echo "Error: no se encontró un repositorio Git en ${PROJECT_PATH}."
-  SERVERKIT_SUMMARY+="-------------------------------------------\n"
-  SERVERKIT_SUMMARY+="[Repositorio SSH]\n"
-  SERVERKIT_SUMMARY+="Error: no se encontró repositorio Git en ${PROJECT_PATH}.\n"
-  SERVERKIT_SUMMARY+="-------------------------------------------\n"
-  [[ "${BASH_SOURCE[0]}" == "${0}" ]] && echo -e "$SERVERKIT_SUMMARY"
-  exit 1
+  echo "Advertencia: no se encontró un repositorio Git en ${PROJECT_PATH}."
+  echo "El directorio será eliminado de todas formas."
 fi
 
 # ---------------------------------------------------------------
-# Obtener información del repositorio
+# Detección de información del repositorio
 # ---------------------------------------------------------------
 REPO_URL=$(sudo -u "$APP_USER" git -C "$PROJECT_PATH" remote get-url origin 2>/dev/null || true)
 REPO_NAME=$(basename -s .git "$REPO_URL")
+REPO_NAME=${REPO_NAME:-$(basename "$PROJECT_PATH")}
 KEY_PATH="${SSH_DIR}/deploy_${REPO_NAME}"
 
 echo
@@ -138,12 +139,8 @@ fi
 # ---------------------------------------------------------------
 # Eliminación del directorio del proyecto
 # ---------------------------------------------------------------
-if [[ -d "$PROJECT_PATH" ]]; then
-  echo "Eliminando directorio del proyecto..."
-  rm -rf "$PROJECT_PATH"
-else
-  echo "No se encontró el directorio ${PROJECT_PATH}."
-fi
+echo "Eliminando directorio del proyecto..."
+rm -rf "$PROJECT_PATH"
 
 echo "Desinstalación completada para '${REPO_NAME}'."
 
