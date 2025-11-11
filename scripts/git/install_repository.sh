@@ -5,15 +5,14 @@
 # ===============================================
 # Genera una Deploy Key para el usuario 'serverkit',
 # configura el acceso SSH y clona el repositorio en
-# la ruta indicada.
+# /opt/<nombre_repo>.
 #
 # Uso:
 #   /opt/serverkit/scripts/git/install-repo.sh \
-#       URL=git@github.com:POSITION-CHILE/listener-node.git \
-#       PATH=/opt/apps
+#       URL=git@github.com:POSITION-CHILE/listener-node.git
 #
 # Nota:
-#   - El parámetro PATH es opcional (por defecto /opt/apps)
+#   - El parámetro PATH es opcional (por defecto /opt)
 #   - Si el repositorio ya existe, se omite la clonación
 # ===============================================
 
@@ -44,13 +43,30 @@ for arg in "$@"; do
   esac
 done
 
-# Valor por defecto si no se define PATH
-PATH_DIR="${PATH_DIR:-/opt/apps}"
+# ---------------------------------------------------------------
+# Definir valores por defecto
+# ---------------------------------------------------------------
+PATH_DIR="${PATH_DIR:-/opt}"
 
-# Validación básica
+# Verificar que PATH esté dentro de /opt
+if [[ ! "$PATH_DIR" =~ ^/opt(/.*)?$ ]]; then
+  echo "Error: el directorio de instalación debe estar dentro de /opt/"
+  echo "Ruta recibida: ${PATH_DIR}"
+  echo "Ejemplo válido: PATH=/opt"
+  exit 1
+fi
+
+# ---------------------------------------------------------------
+# Validaciones iniciales
+# ---------------------------------------------------------------
 if [[ -z "$URL" ]]; then
-  echo "Error: Debes proporcionar la URL del repositorio."
-  echo "Ejemplo: $0 URL=git@github.com:ORG/REPO.git [PATH=/opt/apps]"
+  echo "Error: debes proporcionar la URL del repositorio."
+  echo "Ejemplo: $0 URL=git@github.com:ORG/REPO.git"
+  exit 1
+fi
+
+if ! id "$APP_USER" &>/dev/null; then
+  echo "Error: el usuario '${APP_USER}' no existe. Ejecuta primero setup-user.sh."
   exit 1
 fi
 
@@ -102,8 +118,15 @@ fi
 # ---------------------------------------------------------------
 # Clonación (solo si no existe)
 # ---------------------------------------------------------------
-sudo -u "$APP_USER" mkdir -p "$PATH_DIR"
 REPO_PATH_SHORT=$(echo "$URL" | cut -d':' -f2)
+
+# Crear directorio base con permisos apropiados
+if [[ ! -d "$PATH_DIR" ]]; then
+  echo "Creando ruta base ${PATH_DIR}..."
+  mkdir -p "$PATH_DIR"
+  chown -R "$APP_USER":"$APP_USER" "$PATH_DIR"
+  chmod 755 "$PATH_DIR"
+fi
 
 if [[ -d "${DEST_DIR}/.git" ]]; then
   echo "El repositorio '${REPO_NAME}' ya existe en ${DEST_DIR}. Omitiendo clonación."
