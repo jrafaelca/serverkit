@@ -84,6 +84,10 @@ if [[ ! -f "$KEY_PATH" ]]; then
   echo "------------------------------------------------------------"
   echo
   read -rp "Confirma cuando la Deploy Key haya sido agregada (ENTER para continuar)..."
+
+  # Eliminar la clave pública por seguridad
+  rm -f "${KEY_PATH}.pub"
+  echo "Clave pública eliminada tras confirmación del usuario."
 else
   echo "Clave existente detectada: ${KEY_PATH}"
 fi
