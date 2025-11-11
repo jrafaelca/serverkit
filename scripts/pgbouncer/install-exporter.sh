@@ -7,44 +7,63 @@
 # el servicio Prometheus pgbouncer_exporter.
 # ===============================================
 
-[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
+source /opt/serverkit/scripts/common/loader.sh
 
-install_pgbouncer_exporter() {
-  log_info "Instalando PgBouncer Exporter..."
+echo
+echo "Iniciando instalación de PgBouncer Exporter..."
 
-  USERLIST="/etc/pgbouncer/userlist.txt"
-  SERVICE="/etc/systemd/system/pgbouncer-exporter.service"
-  BIN_PATH="/usr/local/bin/pgbouncer_exporter"
+USERLIST="/etc/pgbouncer/userlist.txt"
+SERVICE="/etc/systemd/system/pgbouncer-exporter.service"
+BIN_PATH="/usr/local/bin/pgbouncer_exporter"
 
-  # --- Verifica que PgBouncer exista ---
-  if ! command -v pgbouncer >/dev/null 2>&1; then
-    log_error "PgBouncer no está instalado. Instálalo antes de continuar."
-    exit 1
-  fi
+# ---------------------------------------------------------------
+# Validar instalación de PgBouncer
+# ---------------------------------------------------------------
+if ! command -v pgbouncer >/dev/null 2>&1; then
+  echo "Error: PgBouncer no está instalado. Instálalo antes de continuar."
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  SERVERKIT_SUMMARY+="[PgBouncer Exporter]\n"
+  SERVERKIT_SUMMARY+="Error: PgBouncer no encontrado. Instalación abortada.\n"
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  exit 1
+fi
 
-  # --- Usuario exporter ---
-  EXPORTER_USER="exporter"
-  EXPORTER_PASS="$(openssl rand -base64 18 | tr -d '/+=' | cut -c1-18)"
-  EXPORTER_MD5_HASH="md5$(printf '%s' "${EXPORTER_PASS}${EXPORTER_USER}" | md5sum | awk '{print $1}')"
+# ---------------------------------------------------------------
+# Crear usuario "exporter"
+# ---------------------------------------------------------------
+EXPORTER_USER="exporter"
+EXPORTER_PASS="$(openssl rand -base64 18 | tr -d '/+=' | cut -c1-18)"
+EXPORTER_MD5_HASH="md5$(printf '%s' "${EXPORTER_PASS}${EXPORTER_USER}" | md5sum | awk '{print $1}')"
 
+if ! grep -q "\"${EXPORTER_USER}\"" "$USERLIST" 2>/dev/null; then
   echo "\"${EXPORTER_USER}\" \"${EXPORTER_MD5_HASH}\"" >> "$USERLIST"
+  chown pgbouncer:pgbouncer "$USERLIST"
+  chmod 600 "$USERLIST"
+  echo "Usuario 'exporter' agregado al userlist de PgBouncer."
+else
+  echo "El usuario 'exporter' ya existe en PgBouncer. Omitiendo creación."
+fi
 
-  # --- Descargar la última versión ---
-  log_info "Descargando la última versión de pgbouncer_exporter..."
-  LATEST_URL=$(curl -s https://api.github.com/repos/prometheus-community/pgbouncer_exporter/releases/latest \
-    | grep browser_download_url \
-    | grep linux-amd64 \
-    | cut -d '"' -f 4)
+# ---------------------------------------------------------------
+# Descargar la última versión estable de pgbouncer_exporter
+# ---------------------------------------------------------------
+echo "Descargando la última versión de pgbouncer_exporter..."
+LATEST_URL=$(curl -s https://api.github.com/repos/prometheus-community/pgbouncer_exporter/releases/latest \
+  | grep browser_download_url \
+  | grep linux-amd64 \
+  | cut -d '"' -f 4)
 
-  cd /usr/local/bin
-  wget -q "$LATEST_URL" -O pgbouncer_exporter.tar.gz
-  tar -xzf pgbouncer_exporter.tar.gz
-  mv pgbouncer_exporter-*/pgbouncer_exporter .
-  chmod +x "$BIN_PATH"
-  rm -rf pgbouncer_exporter-* pgbouncer_exporter.tar.gz
+cd /usr/local/bin
+wget -q "$LATEST_URL" -O pgbouncer_exporter.tar.gz
+tar -xzf pgbouncer_exporter.tar.gz >/dev/null 2>&1
+mv pgbouncer_exporter-*/pgbouncer_exporter "$BIN_PATH" 2>/dev/null || true
+chmod +x "$BIN_PATH"
+rm -rf pgbouncer_exporter-* pgbouncer_exporter.tar.gz
 
-  # --- Crear servicio systemd ---
-  cat > "$SERVICE" <<EOF
+# ---------------------------------------------------------------
+# Crear servicio systemd
+# ---------------------------------------------------------------
+cat > "$SERVICE" <<EOF
 [Unit]
 Description=PgBouncer Prometheus Exporter
 After=network.target pgbouncer.service
@@ -59,32 +78,41 @@ RestartSec=5s
 WantedBy=multi-user.target
 EOF
 
-  # --- Iniciar y habilitar ---
-  systemctl daemon-reload
-  systemctl enable --now pgbouncer-exporter
+systemctl daemon-reload >/dev/null 2>&1
+systemctl enable --now pgbouncer-exporter >/dev/null 2>&1
+sleep 3
 
-  sleep 3
+# ---------------------------------------------------------------
+# Validación
+# ---------------------------------------------------------------
+if systemctl is-active --quiet pgbouncer-exporter; then
+  echo "PgBouncer Exporter instalado y en ejecución."
+  STATUS="instalado"
+else
+  echo "Error: el servicio pgbouncer-exporter no se inició correctamente."
+  STATUS="error"
+fi
 
-  # --- Validación ---
-  if systemctl is-active --quiet pgbouncer-exporter; then
-    log_info "PgBouncer Exporter iniciado correctamente."
-  else
-    log_error "El servicio pgbouncer-exporter no se inició correctamente."
-  fi
+# ---------------------------------------------------------------
+# Resumen
+# ---------------------------------------------------------------
+SERVERKIT_SUMMARY+="-------------------------------------------\n"
+SERVERKIT_SUMMARY+="[PgBouncer Exporter]\n"
+SERVERKIT_SUMMARY+="Estado: ${STATUS}\n"
+SERVERKIT_SUMMARY+="Usuario: ${EXPORTER_USER}\n"
+SERVERKIT_SUMMARY+="Contraseña: ${EXPORTER_PASS}\n"
+SERVERKIT_SUMMARY+="Endpoint métricas: http://localhost:9187/metrics\n"
+SERVERKIT_SUMMARY+="Archivo de servicio: ${SERVICE}\n"
+SERVERKIT_SUMMARY+="-------------------------------------------\n"
 
+# ---------------------------------------------------------------
+# Mostrar resumen si se ejecuta directamente
+# ---------------------------------------------------------------
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   echo
+  echo "==========================================="
   echo "PgBouncer Exporter instalado correctamente."
-
-  if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    echo "==============================================="
-    echo "Usuario : ${EXPORTER_USER}"
-    echo "Contraseña : ${EXPORTER_PASS}"
-    echo "Endpoint métricas : http://localhost:9187/metrics"
-    echo
-    echo "Para limpiar del historial los datos sensibles, ejecuta (una sola línea):"
-    echo "  history -c && history -w && rm -f ~/.bash_history"
-    echo "==========================================="
-  fi
-}
-
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && install_pgbouncer_exporter "$@"
+  echo "==========================================="
+  echo -e "$SERVERKIT_SUMMARY"
+  echo
+fi

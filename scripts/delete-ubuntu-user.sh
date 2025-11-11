@@ -7,37 +7,76 @@
 # existe al menos otro usuario con privilegios sudo.
 # ===============================================
 
-# Carga entorno si no está inicializado
-[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
+source /opt/serverkit/scripts/common/loader.sh
 
-delete_ubuntu_user() {
-  log_start
+echo
+echo "Eliminando usuario 'ubuntu' del sistema..."
 
-  # --- Verifica si 'ubuntu' existe ---
-  if ! id ubuntu &>/dev/null; then
-    log_info "El usuario 'ubuntu' no existe. No se requiere acción."
-    return
+# Verificar si 'ubuntu' existe
+if ! id ubuntu &>/dev/null; then
+  echo "El usuario 'ubuntu' no existe. No se requiere acción."
+
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  SERVERKIT_SUMMARY+="[Eliminación de usuario 'ubuntu']\n"
+  SERVERKIT_SUMMARY+="Estado: No se requiere acción (usuario inexistente).\n"
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+
+  if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo -e "$SERVERKIT_SUMMARY"
   fi
+  exit 0
+fi
 
-  # --- Verifica si existe otro usuario con privilegios sudo ---
-  local admin_count
-  admin_count=$(getent group sudo | awk -F: '{print NF-2}')
-  if (( admin_count < 1 )); then
-    log_error "No se detectaron otros usuarios administrativos."
-    log_info  "Cree primero un usuario con privilegios sudo antes de eliminar 'ubuntu'."
-    return 1
+# Verificar que exista al menos otro usuario con privilegios sudo
+admin_users=$(getent group sudo | awk -F: '{print $4}' | tr ',' '\n' | grep -v '^ubuntu$' | xargs)
+if [[ -z "$admin_users" ]]; then
+  echo "No se detectaron otros usuarios administrativos."
+  echo "Debe crear primero un usuario con privilegios sudo antes de eliminar 'ubuntu'."
+
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  SERVERKIT_SUMMARY+="[Eliminación de usuario 'ubuntu']\n"
+  SERVERKIT_SUMMARY+="Error: No se detectaron otros usuarios con privilegios sudo.\n"
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+
+  if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo -e "$SERVERKIT_SUMMARY"
   fi
+  exit 1
+fi
 
-  # --- Cierra procesos y elimina permisos ---
-  pkill -u ubuntu 2>/dev/null || true
-  rm -f /etc/sudoers.d/90-cloud-init-users
+# Cerrar procesos activos y eliminar permisos
+pkill -u ubuntu 2>/dev/null || true
+rm -f /etc/sudoers.d/90-cloud-init-users 2>/dev/null || true
 
-  # --- Elimina el usuario ---
-  if deluser --remove-home ubuntu &>/dev/null; then
-    log_info "Usuario 'ubuntu' eliminado correctamente."
+# Eliminar usuario y su home
+if deluser --remove-home ubuntu &>/dev/null; then
+  echo "Usuario 'ubuntu' eliminado correctamente."
+
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  SERVERKIT_SUMMARY+="[Eliminación de usuario 'ubuntu']\n"
+  SERVERKIT_SUMMARY+="Estado: Usuario eliminado correctamente.\n"
+  SERVERKIT_SUMMARY+="Usuarios administrativos restantes: ${admin_users}\n"
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+else
+  echo "Error al eliminar el usuario 'ubuntu'."
+
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  SERVERKIT_SUMMARY+="[Eliminación de usuario 'ubuntu']\n"
+  SERVERKIT_SUMMARY+="Error: Fallo al ejecutar 'deluser --remove-home ubuntu'.\n"
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+
+  if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo -e "$SERVERKIT_SUMMARY"
   fi
+  exit 1
+fi
 
-  log_end
-}
-
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && delete_ubuntu_user "$@"
+# Mostrar resumen si se ejecuta directamente
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  echo
+  echo "==========================================="
+  echo "Eliminación de usuario 'ubuntu'"
+  echo "==========================================="
+  echo -e "$SERVERKIT_SUMMARY"
+  echo
+fi

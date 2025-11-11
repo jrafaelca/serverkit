@@ -7,16 +7,24 @@
 # una regla de logrotate para /var/log/auth.log.
 # ===============================================
 
-# Carga entorno si no está inicializado
-[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
+source /opt/serverkit/scripts/common/loader.sh
 
-setup_system_ssh() {
-  log_info "Iniciando endurecimiento de SSH..."
+echo
+echo "Endureciendo configuración SSH..."
 
-  # --- Configuración segura ---
-  [[ -d /etc/ssh/sshd_config.d ]] || mkdir /etc/ssh/sshd_config.d
+CONF_FILE="/etc/ssh/sshd_config.d/89-serverkit.conf"
+LOGROTATE_FILE="/etc/logrotate.d/sshd"
+RUNTIME_DIR="/run/sshd"
 
-  cat > /etc/ssh/sshd_config.d/89-serverkit.conf <<'EOF'
+# ---------------------------------------------------------------
+# Crear directorio de configuración si no existe
+# ---------------------------------------------------------------
+[[ -d /etc/ssh/sshd_config.d ]] || mkdir -p /etc/ssh/sshd_config.d
+
+# ---------------------------------------------------------------
+# Crear archivo de configuración segura (idempotente)
+# ---------------------------------------------------------------
+cat > "$CONF_FILE" <<'EOF'
 # Configuración gestionada por ServerKit
 PasswordAuthentication no
 PermitRootLogin prohibit-password
@@ -31,16 +39,21 @@ LoginGraceTime 30
 MaxAuthTries 3
 AllowTcpForwarding no
 EOF
-  log_info "Archivo de configuración SSH creado: /etc/ssh/sshd_config.d/89-serverkit.conf"
 
-  # --- Claves host SSH ---
-  ssh-keygen -A
-  log_info "Claves host SSH verificadas."
+chmod 600 "$CONF_FILE"
+echo "Archivo de configuración SSH creado: ${CONF_FILE}"
 
-  # --- Regla de logrotate ---
-  TARGET_FILE="/etc/logrotate.d/sshd"
-  if [[ ! -f "$TARGET_FILE" ]]; then
-    cat > "$TARGET_FILE" <<'EOF'
+# ---------------------------------------------------------------
+# Verificar o generar claves host SSH
+# ---------------------------------------------------------------
+ssh-keygen -A >/dev/null 2>&1
+echo "Claves host SSH verificadas."
+
+# ---------------------------------------------------------------
+# Crear regla de logrotate (si no existe)
+# ---------------------------------------------------------------
+if [[ ! -f "$LOGROTATE_FILE" ]]; then
+  cat > "$LOGROTATE_FILE" <<'EOF'
 /var/log/auth.log {
     missingok
     notifempty
@@ -49,28 +62,55 @@ EOF
     compress
     delaycompress
     postrotate
-        systemctl restart ssh.service > /dev/null 2>&1 || true
+        systemctl reload ssh.service > /dev/null 2>&1 || true
     endscript
 }
 EOF
-    log_info "Regla de logrotate creada: $TARGET_FILE"
-  fi
+  echo "Regla de logrotate creada: ${LOGROTATE_FILE}"
+else
+  echo "Regla de logrotate existente. No se realizaron cambios."
+fi
 
-  # --- Asegura el directorio de runtime ---
-  if [[ ! -d /run/sshd ]]; then
-    mkdir -p /run/sshd
-    chmod 755 /run/sshd
-    log_info "Directorio /run/sshd creado para privilegios de SSH."
-  fi
+# ---------------------------------------------------------------
+# Asegurar directorio de runtime de SSH
+# ---------------------------------------------------------------
+if [[ ! -d "$RUNTIME_DIR" ]]; then
+  mkdir -p "$RUNTIME_DIR"
+  chmod 755 "$RUNTIME_DIR"
+  echo "Directorio ${RUNTIME_DIR} creado."
+fi
 
-  # --- Validación ---
-  if sshd -t >/dev/null 2>&1; then
-    log_info "✅ Validación de configuración SSH exitosa."
-    log_info "✅ Endurecimiento SSH completado correctamente."
-  else
-    log_error "❌ Error en configuración SSH. Revisa /etc/ssh/sshd_config.d/89-serverkit.conf"
-    return 1
-  fi
-}
+# ---------------------------------------------------------------
+# Validación de configuración SSH
+# ---------------------------------------------------------------
+if sshd -t >/dev/null 2>&1; then
+  systemctl reload ssh >/dev/null 2>&1 || true
+  echo "✅ Validación de configuración SSH exitosa. Servicio recargado."
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && setup_system_ssh "$@"
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  SERVERKIT_SUMMARY+="[SSH seguro]\n"
+  SERVERKIT_SUMMARY+="Archivo de configuración: ${CONF_FILE}\n"
+  SERVERKIT_SUMMARY+="Directorio runtime: ${RUNTIME_DIR}\n"
+  SERVERKIT_SUMMARY+="Regla logrotate: ${LOGROTATE_FILE}\n"
+  SERVERKIT_SUMMARY+="Estado: configuración validada y servicio recargado.\n"
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+else
+  echo "❌ Error en configuración SSH. Revisa ${CONF_FILE}"
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  SERVERKIT_SUMMARY+="[SSH seguro]\n"
+  SERVERKIT_SUMMARY+="Error: configuración inválida. Verifique el archivo generado.\n"
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  exit 1
+fi
+
+# ---------------------------------------------------------------
+# Mostrar resumen si se ejecuta directamente
+# ---------------------------------------------------------------
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  echo
+  echo "==========================================="
+  echo "Configuración segura de SSH"
+  echo "==========================================="
+  echo -e "$SERVERKIT_SUMMARY"
+  echo
+fi

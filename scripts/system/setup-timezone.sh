@@ -3,31 +3,71 @@
 # ===============================================
 # Configuración de zona horaria a UTC
 # ===============================================
-# Establece la zona horaria del sistema en UTC.
-# Compatible tanto con sistemas con systemd como sin él.
+# Establece la zona horaria del sistema en UTC
+# utilizando timedatectl (Ubuntu 22.04+ garantizado).
 # ===============================================
 
-[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
+source /opt/serverkit/scripts/common/loader.sh
 
-setup_system_timezone() {
-  log_info "Iniciando configuración de zona horaria a UTC..."
+echo
+echo "Ajustando zona horaria del sistema..."
 
-  # --- Intenta establecer la zona horaria ---
-  if command -v timedatectl >/dev/null 2>&1; then
-    timedatectl set-timezone UTC >/dev/null 2>&1 || log_warn "No se pudo aplicar la zona horaria mediante timedatectl."
-  elif [ -f /etc/localtime ]; then
-    ln -sf /usr/share/zoneinfo/UTC /etc/localtime
-  else
-    log_warn "No se detectó mecanismo para establecer zona horaria. Verifica manualmente."
+# ---------------------------------------------------------------
+# Establecer la zona horaria a UTC
+# ---------------------------------------------------------------
+if timedatectl set-timezone UTC >/dev/null 2>&1; then
+  echo "Zona horaria establecida correctamente en UTC."
+else
+  echo "❌ Error al establecer la zona horaria mediante timedatectl."
+
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  SERVERKIT_SUMMARY+="[Zona horaria]\n"
+  SERVERKIT_SUMMARY+="Error: No se pudo aplicar zona UTC mediante timedatectl.\n"
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+
+  if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo
+    echo "==========================================="
+    echo "Configuración de zona horaria"
+    echo "==========================================="
+    echo -e "$SERVERKIT_SUMMARY"
+    echo
   fi
+  exit 1
+fi
 
-  # --- Validación final ---
-  CURRENT_TZ=$(date +'%Z %z')
-  if [[ "$CURRENT_TZ" == "UTC +0000" || "$CURRENT_TZ" == "UTC" ]]; then
-    log_info "✅ Zona horaria configurada correctamente en UTC."
-  else
-    log_warn "⚠️ Zona horaria actual: $CURRENT_TZ (no es UTC)."
-  fi
-}
+# ---------------------------------------------------------------
+# Validación final
+# ---------------------------------------------------------------
+CURRENT_TZ=$(date +'%Z %z' 2>/dev/null || echo "Desconocido")
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && setup_system_timezone "$@"
+if [[ "$CURRENT_TZ" =~ ^UTC ]]; then
+  echo "✅ Validación exitosa: zona horaria activa es UTC."
+
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  SERVERKIT_SUMMARY+="[Zona horaria]\n"
+  SERVERKIT_SUMMARY+="Zona configurada: UTC\n"
+  SERVERKIT_SUMMARY+="Comando aplicado: timedatectl set-timezone UTC\n"
+  SERVERKIT_SUMMARY+="Estado: correcto.\n"
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+else
+  echo "⚠️  Advertencia: zona horaria actual '${CURRENT_TZ}' (no es UTC)."
+
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  SERVERKIT_SUMMARY+="[Zona horaria]\n"
+  SERVERKIT_SUMMARY+="Zona detectada: ${CURRENT_TZ}\n"
+  SERVERKIT_SUMMARY+="Estado: no es UTC, requiere revisión manual.\n"
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+fi
+
+# ---------------------------------------------------------------
+# Mostrar resumen si se ejecuta directamente
+# ---------------------------------------------------------------
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  echo
+  echo "==========================================="
+  echo "Configuración de zona horaria"
+  echo "==========================================="
+  echo -e "$SERVERKIT_SUMMARY"
+  echo
+fi

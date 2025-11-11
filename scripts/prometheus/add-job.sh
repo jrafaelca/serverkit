@@ -1,70 +1,137 @@
 #!/usr/bin/env bash
 
 # ===============================================
-# Agrega un nuevo job a Prometheus
+# Agrega un nuevo job a Prometheus (no interactivo)
 # ===============================================
-# Este script toma un archivo desde scripts/prometheus/jobs/
-# y lo anexa a /etc/prometheus/prometheus.yml.
-# Luego recarga el servicio de Prometheus.
+# Toma un archivo desde scripts/prometheus/jobs/
+# y lo anexa a /etc/prometheus/prometheus.yml (o ruta especificada).
 #
-# Ejemplo:
-#   ./add-job.sh pgbouncer.yml
+# Uso:
+#   ./add-job.sh pgbouncer.yml [/etc/prometheus/prometheus.yml]
 # ===============================================
 
-[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
+source /opt/serverkit/scripts/common/loader.sh
 
-add_job() {
-  local JOB_NAME="${1:-}"
-  local PROM_CONFIG="/etc/prometheus/prometheus.yml"
-  local JOB_FILE="${BASE_DIR}/scripts/prometheus/jobs/${JOB_NAME}"
+JOB_NAME="${1:-}"
+PROM_CONFIG="${2:-/etc/prometheus/prometheus.yml}"
+BASE_DIR="/opt/serverkit"
+JOBS_DIR="${BASE_DIR}/scripts/prometheus/jobs"
+JOB_FILE="${JOBS_DIR}/${JOB_NAME}"
 
-  if [[ -z "$JOB_NAME" ]]; then
-    log_error "Debes indicar el nombre del job. Ejemplo:"
-    echo "  $(basename "$0") pgbouncer.yml"
-    exit 1
-  fi
+echo
+echo "Iniciando adición de job a Prometheus..."
+echo "Archivo de configuración: ${PROM_CONFIG}"
 
-  if [[ ! -f "$JOB_FILE" ]]; then
-    log_error "El archivo ${JOB_FILE} no existe."
-    exit 1
-  fi
+# ---------------------------------------------------------------
+# Validaciones
+# ---------------------------------------------------------------
+if [[ -z "$JOB_NAME" ]]; then
+  echo "Error: Debes indicar el nombre del job (ej: pgbouncer.yml)."
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  SERVERKIT_SUMMARY+="[Prometheus Job]\n"
+  SERVERKIT_SUMMARY+="Error: No se indicó el nombre del job.\n"
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  exit 1
+fi
 
-  log_info "Agregando configuración desde ${JOB_FILE}..."
+if [[ ! -f "$JOB_FILE" ]]; then
+  echo "Error: No se encontró ${JOB_FILE}."
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  SERVERKIT_SUMMARY+="[Prometheus Job]\n"
+  SERVERKIT_SUMMARY+="Error: No existe el archivo ${JOB_FILE}.\n"
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  exit 1
+fi
 
-  # Crear respaldo de seguridad
-  cp "$PROM_CONFIG" "${PROM_CONFIG}.bak_$(date +%Y%m%d%H%M%S)"
+if [[ ! -f "$PROM_CONFIG" ]]; then
+  echo "Error: No se encontró el archivo ${PROM_CONFIG}."
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  SERVERKIT_SUMMARY+="[Prometheus Job]\n"
+  SERVERKIT_SUMMARY+="Error: No se encontró ${PROM_CONFIG}.\n"
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  exit 1
+fi
 
-  # Validar formato YAML
-  if ! grep -q "^scrape_configs:" "$PROM_CONFIG"; then
-    log_error "El archivo de configuración no contiene 'scrape_configs:'. Verifica ${PROM_CONFIG}."
-    exit 1
-  fi
+if ! grep -q "^scrape_configs:" "$PROM_CONFIG"; then
+  echo "Error: ${PROM_CONFIG} no contiene 'scrape_configs:'."
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  SERVERKIT_SUMMARY+="[Prometheus Job]\n"
+  SERVERKIT_SUMMARY+="Error: Falta la sección scrape_configs en ${PROM_CONFIG}.\n"
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  exit 1
+fi
 
-  # Insertar el nuevo job
-  awk -v job_file="$JOB_FILE" '
-    /^  - job_name:/ {last=NR}
-    {lines[NR]=$0}
-    END {
-      for (i=1; i<=NR; i++) print lines[i]
-      print ""
-      system("sed \"s/^/  /\" " job_file)
-      print ""
-    }
-  ' "$PROM_CONFIG" > "${PROM_CONFIG}.tmp" && mv "${PROM_CONFIG}.tmp" "$PROM_CONFIG"
+# ---------------------------------------------------------------
+# Crear respaldo
+# ---------------------------------------------------------------
+BACKUP_FILE="${PROM_CONFIG}.bak_$(date +%Y%m%d%H%M%S)"
+cp "$PROM_CONFIG" "$BACKUP_FILE" >/dev/null 2>&1
+echo "Respaldo creado: ${BACKUP_FILE}"
 
-  chown prometheus:prometheus "$PROM_CONFIG"
-  chmod 640 "$PROM_CONFIG"
+# ---------------------------------------------------------------
+# Verificar duplicado
+# ---------------------------------------------------------------
+JOB_ID=$(grep -oP "^  - job_name:\s*'\K[^']+" "$JOB_FILE" || grep -oP '^  - job_name:\s*"\K[^"]+' "$JOB_FILE")
+if grep -q "job_name: ['\"]${JOB_ID}['\"]" "$PROM_CONFIG"; then
+  echo "El job '${JOB_ID}' ya está presente en la configuración. Omitiendo inserción."
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  SERVERKIT_SUMMARY+="[Prometheus Job]\n"
+  SERVERKIT_SUMMARY+="Job: ${JOB_ID}\n"
+  SERVERKIT_SUMMARY+="Estado: ya existía, sin cambios.\n"
+  SERVERKIT_SUMMARY+="Archivo: ${PROM_CONFIG}\n"
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  exit 0
+fi
 
-  # Recargar Prometheus
-  log_info "Recargando Prometheus..."
-  systemctl restart prometheus
+# ---------------------------------------------------------------
+# Insertar el nuevo bloque
+# ---------------------------------------------------------------
+awk -v job_file="$JOB_FILE" '
+  { print $0 }
+  END {
+    print ""
+    system("sed \"s/^/  /\" " job_file)
+    print ""
+  }
+' "$PROM_CONFIG" > "${PROM_CONFIG}.tmp" && mv "${PROM_CONFIG}.tmp" "$PROM_CONFIG"
 
-  if systemctl is-active --quiet prometheus; then
-    log_info "✅ Job '${JOB_NAME}' agregado correctamente y Prometheus recargado."
-  else
-    log_error "⚠️  Prometheus no está activo. Revisa los logs:"
-    echo "   journalctl -u prometheus -n 20 -xe"
-  fi
-}
+chown prometheus:prometheus "$PROM_CONFIG"
+chmod 640 "$PROM_CONFIG"
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && add_job "$@"
+# ---------------------------------------------------------------
+# Recargar Prometheus
+# ---------------------------------------------------------------
+systemctl restart prometheus >/dev/null 2>&1
+sleep 2
+
+if systemctl is-active --quiet prometheus; then
+  STATUS="agregado"
+  echo "Job '${JOB_ID}' agregado y Prometheus recargado."
+else
+  STATUS="error"
+  echo "Error: Prometheus no se inició correctamente."
+  echo "Revisa con: journalctl -u prometheus -n 20 -xe"
+fi
+
+# ---------------------------------------------------------------
+# Resumen
+# ---------------------------------------------------------------
+SERVERKIT_SUMMARY+="-------------------------------------------\n"
+SERVERKIT_SUMMARY+="[Prometheus Job]\n"
+SERVERKIT_SUMMARY+="Job: ${JOB_ID}\n"
+SERVERKIT_SUMMARY+="Archivo origen: ${JOB_FILE}\n"
+SERVERKIT_SUMMARY+="Configuración: ${PROM_CONFIG}\n"
+SERVERKIT_SUMMARY+="Estado: ${STATUS}\n"
+SERVERKIT_SUMMARY+="-------------------------------------------\n"
+
+# ---------------------------------------------------------------
+# Mostrar resumen si se ejecuta directamente
+# ---------------------------------------------------------------
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  echo
+  echo "==========================================="
+  echo "Job agregado a Prometheus (no interactivo)"
+  echo "==========================================="
+  echo -e "$SERVERKIT_SUMMARY"
+  echo
+fi

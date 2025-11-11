@@ -7,39 +7,83 @@
 # sin afectar configuraciones globales del sistema.
 # ===============================================
 
-[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
+source /opt/serverkit/scripts/common/loader.sh
 
-uninstall_node() {
-  local NODE_USER="serverkit"
-  local NODE_HOME="/home/${NODE_USER}"
-  local FNM_PATH="${NODE_HOME}/.local/share/fnm"
-  local SHELL_RC="${NODE_HOME}/.bashrc"
+echo
+echo "Iniciando desinstalación de Node.js y FNM..."
 
-  log_info "🧹 Eliminando Node.js y FNM'..."
+NODE_USER="serverkit"
+NODE_HOME="/home/${NODE_USER}"
+FNM_PATH="${NODE_HOME}/.local/share/fnm"
+SHELL_RC="${NODE_HOME}/.bashrc"
 
-  # --- Verifica que el usuario exista ---
-  if ! id "$NODE_USER" &>/dev/null; then
-    log_error "❌ El usuario '${NODE_USER}' no existe."
-    return 1
-  fi
+# ---------------------------------------------------------------
+# Validar usuario
+# ---------------------------------------------------------------
+if ! id "$NODE_USER" &>/dev/null; then
+  echo "Error: el usuario '${NODE_USER}' no existe."
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  SERVERKIT_SUMMARY+="[Node.js]\n"
+  SERVERKIT_SUMMARY+="Error: el usuario '${NODE_USER}' no existe.\n"
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  exit 1
+fi
 
-  # --- Termina procesos relacionados ---
-  pkill -u "$NODE_USER" node 2>/dev/null || true
-  pkill -u "$NODE_USER" pm2 2>/dev/null || true
+# ---------------------------------------------------------------
+# Finalizar procesos asociados a Node.js
+# ---------------------------------------------------------------
+pkill -u "$NODE_USER" node 2>/dev/null || true
+pkill -u "$NODE_USER" pm2 2>/dev/null || true
+echo "Procesos de Node.js terminados."
 
-  # --- Limpia archivos del entorno FNM ---
-  sudo -u "$NODE_USER" bash <<'EOF'
-    rm -rf ~/.fnm
-    rm -rf ~/.local/share/fnm
-    rm -rf ~/.cache/{node,npm,fnm}
+# ---------------------------------------------------------------
+# Eliminar archivos locales de FNM, Node.js y PNPM
+# ---------------------------------------------------------------
+sudo -u "$NODE_USER" bash <<'EOF'
+rm -rf ~/.fnm
+rm -rf ~/.local/share/fnm
+rm -rf ~/.cache/{node,npm,fnm}
 EOF
+echo "Archivos de entorno Node.js eliminados."
 
-  # --- Limpia bloque FNM completo del shell ---
-  if grep -q '# fnm' "$SHELL_RC"; then
-    sed -i '/# fnm/,/fi/d' "$SHELL_RC" 2>/dev/null || true
-  fi
+# ---------------------------------------------------------------
+# Eliminar configuración de FNM en el shell
+# ---------------------------------------------------------------
+if grep -q 'fnm env' "$SHELL_RC"; then
+  sed -i '/fnm env/d' "$SHELL_RC" 2>/dev/null || true
+  echo "Entradas de FNM eliminadas de ${SHELL_RC}."
+fi
 
-  log_info "✅ Desinstalación completada. Entorno Node.js removido."
-}
+# ---------------------------------------------------------------
+# Validación final
+# ---------------------------------------------------------------
+if [[ ! -d "$FNM_PATH" ]] && ! sudo -u "$NODE_USER" bash -c 'command -v node >/dev/null 2>&1'; then
+  echo "Node.js desinstalado correctamente."
+  STATUS="desinstalado"
+else
+  echo "Advertencia: algunos archivos o comandos de Node.js podrían persistir."
+  STATUS="parcial"
+fi
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && uninstall_node "$@"
+# ---------------------------------------------------------------
+# Resumen
+# ---------------------------------------------------------------
+SERVERKIT_SUMMARY+="-------------------------------------------\n"
+SERVERKIT_SUMMARY+="[Node.js]\n"
+SERVERKIT_SUMMARY+="Estado: ${STATUS}\n"
+SERVERKIT_SUMMARY+="Usuario: ${NODE_USER}\n"
+SERVERKIT_SUMMARY+="Ruta home: ${NODE_HOME}\n"
+SERVERKIT_SUMMARY+="Archivos eliminados: ~/.fnm, ~/.local/share/fnm, ~/.cache/{node,npm,fnm}\n"
+SERVERKIT_SUMMARY+="-------------------------------------------\n"
+
+# ---------------------------------------------------------------
+# Mostrar resumen si se ejecuta directamente
+# ---------------------------------------------------------------
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  echo
+  echo "==========================================="
+  echo "Desinstalación de Node.js completada."
+  echo "==========================================="
+  echo -e "$SERVERKIT_SUMMARY"
+  echo
+fi

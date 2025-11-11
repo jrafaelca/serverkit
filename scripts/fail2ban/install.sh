@@ -3,43 +3,67 @@
 # ===============================================
 # Instalación y configuración de Fail2Ban
 # ===============================================
-# Puede ejecutarse directamente:
-#   sudo bash fail2ban-setup.sh
-# o copiarse y ejecutar los comandos manualmente.
+# Asegura que Fail2Ban esté instalado, activo y con
+# una política de rotación de logs de 100 MB.
 # ===============================================
 
-[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
+source /opt/serverkit/scripts/common/loader.sh
 
-install_fail2ban() {
-  log_info "Iniciando instalación y configuración de Fail2Ban..."
+echo
+echo "Instalando y habilitando Fail2Ban..."
 
-  # --- Instalación ---
-  if ! command -v fail2ban-client >/dev/null 2>&1; then
-    log_info "Instalando Fail2Ban..."
-    apt-get update -y >/dev/null 2>&1
-    apt-get install -y fail2ban >/dev/null 2>&1
+# Verificar si está instalado
+if ! command -v fail2ban-client >/dev/null 2>&1; then
+  echo "Instalando paquetes de Fail2Ban..."
+  apt-get update -y -qq
+  apt-get install -y -qq fail2ban
+  echo "Fail2Ban instalado correctamente."
+else
+  echo "Fail2Ban ya estaba instalado."
+fi
+
+# Habilitar servicio
+systemctl enable --now fail2ban >/dev/null 2>&1 || true
+sleep 1
+
+# Validar servicio
+if systemctl is-active --quiet fail2ban && fail2ban-client ping >/dev/null 2>&1; then
+  echo "Fail2Ban está activo y funcionando correctamente."
+else
+  echo "Error: el servicio Fail2Ban no se pudo validar. Revisa con: systemctl status fail2ban"
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  SERVERKIT_SUMMARY+="[Fail2Ban]\n"
+  SERVERKIT_SUMMARY+="Error: el servicio no se encuentra activo.\n"
+  SERVERKIT_SUMMARY+="Acción sugerida: systemctl status fail2ban\n"
+  SERVERKIT_SUMMARY+="-------------------------------------------\n"
+  if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo -e "$SERVERKIT_SUMMARY"
   fi
+  exit 1
+fi
 
-  # --- Servicio ---
-  systemctl enable --now fail2ban >/dev/null 2>&1 || true
-  sleep 1
-
-  # --- Validación del servicio ---
-  if ! systemctl is-active --quiet fail2ban || ! fail2ban-client ping >/dev/null 2>&1; then
-    log_error "❌ Fallo al iniciar o validar Fail2Ban. Revisa el servicio con: systemctl status fail2ban"
-    return 1
-  fi
-
-  log_info "✅ Servicio Fail2Ban activo y funcionando correctamente."
-
-  # --- Ajuste de rotación de logs ---
-  CONF_FILE="/etc/logrotate.d/fail2ban"
-  if [[ -f "$CONF_FILE" ]] && ! grep -q "maxsize" "$CONF_FILE"; then
+# Ajustar rotación de logs
+CONF_FILE="/etc/logrotate.d/fail2ban"
+if [[ -f "$CONF_FILE" ]]; then
+  if ! grep -q "maxsize" "$CONF_FILE"; then
     sed -i -E '/^(\s*)(daily|weekly|monthly|yearly)/a \ \ maxsize 100M' "$CONF_FILE"
     grep -q "maxsize" "$CONF_FILE" || echo "  maxsize 100M" >> "$CONF_FILE"
+    echo "Regla 'maxsize 100M' aplicada en $CONF_FILE."
   fi
+else
+  echo "Advertencia: no se encontró archivo de logrotate para Fail2Ban."
+fi
 
-  log_info "✅ Configuración de Fail2Ban completada correctamente."
-}
+# Registrar resumen
+SERVERKIT_SUMMARY+="-------------------------------------------\n"
+SERVERKIT_SUMMARY+="[Fail2Ban]\n"
+SERVERKIT_SUMMARY+="Estado: activo y configurado correctamente.\n"
+SERVERKIT_SUMMARY+="Servicio: $(systemctl is-active fail2ban)\n"
+SERVERKIT_SUMMARY+="Archivo de logrotate: ${CONF_FILE}\n"
+SERVERKIT_SUMMARY+="Tamaño máximo de logs: 100M\n"
+SERVERKIT_SUMMARY+="-------------------------------------------\n"
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && install_fail2ban "$@"
+# Mostrar resumen si se ejecuta directamente
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  echo -e "$SERVERKIT_SUMMARY"
+fi

@@ -1,71 +1,79 @@
 #!/usr/bin/env bash
 
 # ===============================================
-# bootstrap.sh — Inicialización principal de ServerKit
-# ===============================================
-# Ejecutar una sola vez tras instalar Ubuntu.
-# Configura el entorno base del servidor, instala
-# dependencias, crea el usuario administrativo,
-# endurece SSH y prepara mecanismos de seguridad.
+# Inicialización principal de ServerKit
 # ===============================================
 
-# --- Carga entorno base ---
+set -euo pipefail
+
+# Carga el entorno base
 source /opt/serverkit/scripts/common/loader.sh
 
-# --- Carga módulos ---
+echo
+echo "Iniciando proceso de aprovisionamiento base..."
+echo "============================================================"
+
+# Verificar si el sistema ya fue aprovisionado previamente
+if [[ -f /opt/serverkit/.provisioned ]]; then
+  echo "El sistema ya fue aprovisionado anteriormente."
+  echo "Si desea repetir el proceso, elimine /opt/serverkit/.provisioned y vuelva a ejecutar este script."
+  exit 0
+fi
+
+SERVERKIT_SUMMARY+="===========================================\n"
+SERVERKIT_SUMMARY+="Servidor aprovisionado correctamente.\n"
+
+# Crear usuario administrativo y preparar su entorno
+echo
+echo "Creando usuario administrativo..."
 source /opt/serverkit/scripts/serverkit/setup-user.sh
+
+# Configurar tareas automáticas de limpieza
+echo
+echo "Configurando tareas automáticas de limpieza..."
 source /opt/serverkit/scripts/serverkit/setup-cleaner.sh
 
+# Instalar y configurar parámetros del sistema base
+echo
+echo "Configurando parámetros básicos del sistema..."
 source /opt/serverkit/scripts/system/setup-system.sh
+
+# Configurar SSH con seguridad endurecida
+echo
+echo "Endureciendo configuración SSH..."
 source /opt/serverkit/scripts/system/setup-ssh.sh
+
+# Configurar el uso de memoria swap
+echo
+echo "Configurando memoria swap..."
 source /opt/serverkit/scripts/system/setup-swap.sh
+
+# Establecer la zona horaria del sistema
+echo
+echo "Ajustando zona horaria del sistema..."
 source /opt/serverkit/scripts/system/setup-timezone.sh
 
+# Instalar y configurar Logrotate
+echo
+echo "Instalando y configurando Logrotate..."
 source /opt/serverkit/scripts/logrotate/install.sh
+
+# Instalar y habilitar Fail2Ban
+echo
+echo "Instalando y habilitando Fail2Ban..."
 source /opt/serverkit/scripts/fail2ban/install.sh
 
-main() {
-  log_start
+# Marcar el sistema como aprovisionado
+touch /opt/serverkit/.provisioned
 
-  # --- Verificación de aprovisionamiento previo ---
-  if [[ -f /opt/serverkit/.provisioned ]]; then
-    log_warn "El sistema ya fue aprovisionado anteriormente."
-    log_warn "Si desea repetir el proceso, elimine /opt/serverkit/.provisioned y vuelva a ejecutar este script."
-    return 0
-  fi
+SERVERKIT_SUMMARY+="-------------------------------------------\n"
+SERVERKIT_SUMMARY+="Servidor aprovisionado correctamente.\n"
+SERVERKIT_SUMMARY+="Hostname: $(hostname)\n"
+SERVERKIT_SUMMARY+="Fecha de finalización: $(date '+%Y-%m-%d %H:%M:%S')\n"
+SERVERKIT_SUMMARY+="-------------------------------------------\n"
+SERVERKIT_SUMMARY+="Para limpiar el historial ejecuta:\n"
+SERVERKIT_SUMMARY+="  history -c && history -w && rm -f ~/.bash_history\n"
+SERVERKIT_SUMMARY+="===========================================\n"
 
-  log_info "Iniciando proceso de aprovisionamiento base de ServerKit..."
-  echo "-------------------------------------------"
-
-  # --- Ejecución de módulos ---
-  setup_serverkit_user
-  setup_serverkit_cleaner
-
-  setup_system
-  setup_system_ssh
-  setup_system_swap
-  setup_system_timezone
-  
-  install_logrotate
-  install_fail2ban
-
-  # --- Marcador de instalación ---
-  touch /opt/serverkit/.provisioned
-
-  # --- Información final ---
-  echo
-  echo "==========================================="
-  echo "Servidor aprovisionado correctamente."
-  echo "Hostname: $(hostname)"
-  echo "Usuario administrativo: serverkit"
-  echo "Contraseña temporal: ${RAW_PASSWORD:-'N/A'}"
-  echo "-------------------------------------------"
-  echo
-  echo "Para limpiar del historial los datos sensibles, ejecuta (una sola línea):"
-  echo "  history -c && history -w && rm -f ~/.bash_history"
-  echo "==========================================="
-
-  log_end
-}
-
-main "$@"
+# Mostrar resumen final
+echo -e "$SERVERKIT_SUMMARY"

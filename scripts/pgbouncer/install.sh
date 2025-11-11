@@ -8,45 +8,63 @@
 # de conexión recomendados con hardening de servicio.
 # ===============================================
 
-[[ -z "${SERVERKIT_ENV_INITIALIZED:-}" ]] && source /opt/serverkit/scripts/common/loader.sh
+source /opt/serverkit/scripts/common/loader.sh
 
-install_pgbouncer() {
-  log_info "Instalando y configurando PgBouncer..."
+echo
+echo "Iniciando instalación y configuración de PgBouncer..."
 
-  # --- Paquetes ---
-  apt-get update -y >> "$LOG_FILE" 2>&1
-  apt-get install -y pgbouncer postgresql-client openssl >> "$LOG_FILE" 2>&1
+# ---------------------------------------------------------------
+# Variables
+# ---------------------------------------------------------------
+INI="/etc/pgbouncer/pgbouncer.ini"
+USERLIST="/etc/pgbouncer/userlist.txt"
+CRT="/etc/pgbouncer/server.crt"
+KEY="/etc/pgbouncer/server.key"
 
-  # --- Usuario y directorios ---
-  id pgbouncer &>/dev/null || useradd -r -s /usr/sbin/nologin -d /var/run/pgbouncer pgbouncer
-  install -d -o pgbouncer -g pgbouncer -m 0750 /etc/pgbouncer
-  install -d -o pgbouncer -g pgbouncer -m 0750 /var/log/pgbouncer
+PGADMIN_USER="pgbouncer"
+PGADMIN_PASS="$(openssl rand -base64 18 | tr -d '/+=' | cut -c1-18)"
+MD5_HASH="md5$(printf '%s' "${PGADMIN_PASS}${PGADMIN_USER}" | md5sum | awk '{print $1}')"
 
-  INI="/etc/pgbouncer/pgbouncer.ini"
-  USERLIST="/etc/pgbouncer/userlist.txt"
-  CRT="/etc/pgbouncer/server.crt"
-  KEY="/etc/pgbouncer/server.key"
+# ---------------------------------------------------------------
+# Instalación de paquetes
+# ---------------------------------------------------------------
+echo "Instalando dependencias necesarias..."
+apt-get update -y -qq
+apt-get install -y -qq pgbouncer postgresql-client openssl
 
-  # --- Usuario administrativo ---
-  PGADMIN_USER="pgbouncer"
-  PGADMIN_PASS="$(openssl rand -base64 18 | tr -d '/+=' | cut -c1-18)"
-  MD5_HASH="md5$(printf '%s' "${PGADMIN_PASS}${PGADMIN_USER}" | md5sum | awk '{print $1}')"
+# ---------------------------------------------------------------
+# Creación de usuario y directorios
+# ---------------------------------------------------------------
+if ! id pgbouncer &>/dev/null; then
+  useradd -r -s /usr/sbin/nologin -d /var/run/pgbouncer pgbouncer
+fi
 
-  echo "\"${PGADMIN_USER}\" \"${MD5_HASH}\"" > "$USERLIST"
-  chown pgbouncer:pgbouncer "$USERLIST"
-  chmod 600 "$USERLIST"
+install -d -o pgbouncer -g pgbouncer -m 0750 /etc/pgbouncer
+install -d -o pgbouncer -g pgbouncer -m 0750 /var/log/pgbouncer
 
-  # --- Certificados TLS ---
- if [[ ! -f "$CRT" || ! -f "$KEY" ]]; then
-   openssl req -x509 -nodes -newkey rsa:2048 \
-     -keyout "$KEY" -out "$CRT" -days 3650 \
-     -subj "/CN=$(hostname -f)" >> "$LOG_FILE" 2>&1
-   chown pgbouncer:pgbouncer "$CRT" "$KEY"
-   chmod 640 "$CRT" "$KEY"
- fi
+# ---------------------------------------------------------------
+# Configurar archivo de usuarios (userlist.txt)
+# ---------------------------------------------------------------
+echo "\"${PGADMIN_USER}\" \"${MD5_HASH}\"" > "$USERLIST"
+chown pgbouncer:pgbouncer "$USERLIST"
+chmod 600 "$USERLIST"
 
-  # --- Configuración principal ---
-  cat > "$INI" <<'EOF'
+# ---------------------------------------------------------------
+# Certificados TLS
+# ---------------------------------------------------------------
+if [[ ! -f "$CRT" || ! -f "$KEY" ]]; then
+  echo "Generando certificados TLS..."
+  openssl req -x509 -nodes -newkey rsa:2048 \
+    -keyout "$KEY" -out "$CRT" -days 3650 \
+    -subj "/CN=$(hostname -f)" >/dev/null 2>&1
+  chown pgbouncer:pgbouncer "$CRT" "$KEY"
+  chmod 640 "$CRT" "$KEY"
+fi
+
+# ---------------------------------------------------------------
+# Configuración principal (pgbouncer.ini)
+# ---------------------------------------------------------------
+cat > "$INI" <<EOF
 [databases]
 ;db = host=localhost port=5432 dbname=postgres user=postgres
 
@@ -95,12 +113,14 @@ cancel_wait_timeout     = 10
 ignore_startup_parameters = extra_float_digits
 EOF
 
-  chown pgbouncer:pgbouncer "$INI"
-  chmod 640 "$INI"
+chown pgbouncer:pgbouncer "$INI"
+chmod 640 "$INI"
 
-  # --- Hardening del servicio ---
-  install -d /etc/systemd/system/pgbouncer.service.d
-  cat > /etc/systemd/system/pgbouncer.service.d/override.conf <<'EOF'
+# ---------------------------------------------------------------
+# Hardening del servicio (systemd override)
+# ---------------------------------------------------------------
+install -d /etc/systemd/system/pgbouncer.service.d
+cat > /etc/systemd/system/pgbouncer.service.d/override.conf <<'EOF'
 [Service]
 User=pgbouncer
 Group=pgbouncer
@@ -116,8 +136,10 @@ RestrictSUIDSGID=yes
 RestrictRealtime=yes
 EOF
 
-  # --- Logrotate ---
-  cat > /etc/logrotate.d/pgbouncer <<'EOF'
+# ---------------------------------------------------------------
+# Configurar rotación de logs
+# ---------------------------------------------------------------
+cat > /etc/logrotate.d/pgbouncer <<'EOF'
 /var/log/pgbouncer/pgbouncer.log {
     daily
     rotate 7
@@ -133,34 +155,44 @@ EOF
 }
 EOF
 
-  # --- Arranque y validación ---
-  systemctl daemon-reexec >/dev/null 2>&1 || true
-  systemctl daemon-reload >/dev/null 2>&1 || true
-  systemctl enable --now pgbouncer >/dev/null 2>&1 || true
-  systemctl reload pgbouncer >/dev/null 2>&1 || true
+# ---------------------------------------------------------------
+# Iniciar y validar servicio
+# ---------------------------------------------------------------
+systemctl daemon-reexec >/dev/null 2>&1 || true
+systemctl daemon-reload >/dev/null 2>&1 || true
+systemctl enable --now pgbouncer >/dev/null 2>&1 || true
+sleep 2
 
-  sleep 2
+if systemctl is-active --quiet pgbouncer; then
+  echo "PgBouncer instalado y ejecutándose correctamente."
+  STATUS="instalado"
+else
+  echo "Error: PgBouncer no se inició correctamente."
+  STATUS="error"
+fi
 
-  if ! systemctl is-active --quiet pgbouncer; then
-    log_error "PgBouncer no inició correctamente."
-    return 1
-  fi
+# ---------------------------------------------------------------
+# Resumen
+# ---------------------------------------------------------------
+SERVERKIT_SUMMARY+="-------------------------------------------\n"
+SERVERKIT_SUMMARY+="[PgBouncer]\n"
+SERVERKIT_SUMMARY+="Estado: ${STATUS}\n"
+SERVERKIT_SUMMARY+="Usuario administrativo: ${PGADMIN_USER}\n"
+SERVERKIT_SUMMARY+="Contraseña: ${PGADMIN_PASS}\n"
+SERVERKIT_SUMMARY+="Archivo de configuración: ${INI}\n"
+SERVERKIT_SUMMARY+="Puerto: 6432\n"
+SERVERKIT_SUMMARY+="TLS: habilitado (TLSv1–TLSv1.3)\n"
+SERVERKIT_SUMMARY+="Modo de conexión: transaction\n"
+SERVERKIT_SUMMARY+="-------------------------------------------\n"
 
+# ---------------------------------------------------------------
+# Mostrar resumen si se ejecuta directamente
+# ---------------------------------------------------------------
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   echo
+  echo "==========================================="
   echo "PgBouncer instalado correctamente."
-
-  if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    echo "==============================================="
-    echo "Admin user : ${PGADMIN_USER}"
-    echo "Admin pass : ${PGADMIN_PASS}"
-    echo "Puerto     : 6432"
-    echo "TLS        : habilitado (TLSv1–TLSv1.3)"
-    echo "Modo pool  : transaction"
-    echo
-    echo "Para limpiar del historial los datos sensibles, ejecuta (una sola línea):"
-    echo "  history -c && history -w && rm -f ~/.bash_history"
-    echo "==========================================="
-  fi
-}
-
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && install_pgbouncer "$@"
+  echo "==========================================="
+  echo -e "$SERVERKIT_SUMMARY"
+  echo
+fi
