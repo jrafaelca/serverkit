@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # ===============================================
-# Instalación de Node.js (via FNM)
+# Instalación y configuración de Node.js (via FNM)
 # ===============================================
 # Instala FNM, Node.js (LTS) y PNPM usando las rutas
 # por defecto del usuario 'serverkit'.
@@ -11,7 +11,7 @@
 source /opt/serverkit/scripts/common/loader.sh
 
 echo
-echo "Iniciando instalación de Node.js y FNM..."
+echo "Iniciando instalación y configuración de Node.js..."
 
 NODE_USER="serverkit"
 NODE_HOME="/home/${NODE_USER}"
@@ -91,7 +91,7 @@ NODE_VERSION=$(sudo -u "$NODE_USER" bash -lc "node -v 2>/dev/null" || echo "N/A"
 PNPM_VERSION=$(sudo -u "$NODE_USER" bash -lc "pnpm -v 2>/dev/null" || echo "N/A")
 
 if [[ "$NODE_VERSION" != "N/A" ]]; then
-  echo "Node.js instalado correctamente."
+  echo "Node.js instalado y funcionando correctamente."
   STATUS="instalado"
 else
   echo "Error: no se pudo validar la instalación de Node.js."
@@ -105,9 +105,9 @@ SERVERKIT_SUMMARY+="-------------------------------------------\n"
 SERVERKIT_SUMMARY+="[Node.js]\n"
 SERVERKIT_SUMMARY+="Estado: ${STATUS}\n"
 SERVERKIT_SUMMARY+="Usuario: ${NODE_USER}\n"
-SERVERKIT_SUMMARY+="Ruta: ${NODE_HOME}\n"
-SERVERKIT_SUMMARY+="Aplicaciones: ${NODE_APPS}\n"
-SERVERKIT_SUMMARY+="Node: ${NODE_VERSION}\n"
+SERVERKIT_SUMMARY+="Ruta home: ${NODE_HOME}\n"
+SERVERKIT_SUMMARY+="Ruta de aplicaciones: ${NODE_APPS}\n"
+SERVERKIT_SUMMARY+="Node.js: ${NODE_VERSION}\n"
 SERVERKIT_SUMMARY+="PNPM: ${PNPM_VERSION}\n"
 SERVERKIT_SUMMARY+="-------------------------------------------\n"
 
@@ -116,5 +116,9 @@ SERVERKIT_SUMMARY+="-------------------------------------------\n"
 # ---------------------------------------------------------------
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   echo
+  echo "==========================================="
+  echo "Node.js instalado correctamente."
+  echo "==========================================="
   echo -e "$SERVERKIT_SUMMARY"
+  echo
 fi
