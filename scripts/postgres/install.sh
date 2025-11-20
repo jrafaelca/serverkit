@@ -45,16 +45,14 @@ fi
 # ---------------------------------------------------------------
 # Instalar PostgreSQL 18
 # ---------------------------------------------------------------
-PG_VERSION="18"
-
 echo "Instalando PostgreSQL ${PG_VERSION}..."
 
-apt-get update -y -qq
-apt-get install -y -qq \
-  postgresql-${PG_VERSION} \
-  postgresql-client-${PG_VERSION} \
+apt-get update -y
+apt-get install -y  \
+  postgresql-18 \
+  postgresql-client-18 \
   postgresql-contrib || {
-    echo "Error: no se pudo instalar PostgreSQL ${PG_VERSION}."
+    echo "Error: no se pudo instalar PostgreSQL 18."
     exit 1
   }
 
@@ -160,7 +158,7 @@ SERVERKIT_SUMMARY+="-------------------------------------------\n"
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   echo
   echo "==========================================="
-  echo "PostgreSQL ${PG_VERSION} instalado, endurecido y configurado."
+  echo "PostgreSQL ${PG_VERSION} instalado."
   echo "==========================================="
   echo -e "$SERVERKIT_SUMMARY"
 fi
