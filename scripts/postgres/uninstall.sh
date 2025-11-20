@@ -24,36 +24,36 @@ PGDG_LIST="/etc/apt/sources.list.d/pgdg.list"
 # Detener servicio si existe
 # ---------------------------------------------------------------
 echo "Deteniendo servicio PostgreSQL..."
-systemctl stop postgresql >/dev/null 2>&1 || true
-systemctl disable postgresql >/dev/null 2>&1 || true
+systemctl stop postgresql
+systemctl disable postgresql
 
 # ---------------------------------------------------------------
 # Remover paquetes PostgreSQL 18
 # ---------------------------------------------------------------
 echo "Eliminando paquetes de PostgreSQL 18..."
 
-apt-get purge -y -qq \
+apt-get purge -y \
   postgresql-18 \
   postgresql-client-18 \
-  postgresql-contrib-18 >/dev/null 2>&1 || true
+  postgresql-contrib-18
 
 # Remover metapaquete (si lo instaló Ubuntu)
-apt-get purge -y -qq postgresql >/dev/null 2>&1 || true
+apt-get purge -y postgresql
 
 # Limpiar dependencias huérfanas
-apt-get autoremove -y -qq || true
+apt-get autoremove -y
 
 # ---------------------------------------------------------------
 # Eliminar archivos y directorios de configuración/datos
 # ---------------------------------------------------------------
 echo "Eliminando directorios de configuración y datos..."
 
-rm -rf "$PG_CONF_DIR" >/dev/null 2>&1 || true
-rm -rf "$PG_DATA_DIR" >/dev/null 2>&1 || true
-rm -rf "$PG_LOG_DIR" >/dev/null 2>&1 || true
+rm -rf "$PG_CONF_DIR"
+rm -rf "$PG_DATA_DIR"
+rm -rf "$PG_LOG_DIR"
 
 # ---------------------------------------------------------------
-# Eliminar repositorio PGDG (opcional)
+# Eliminar repositorio PGDG
 # ---------------------------------------------------------------
 if [[ -f "$PGDG_LIST" ]]; then
   echo "Eliminando repositorio PGDG..."
