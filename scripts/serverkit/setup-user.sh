@@ -66,9 +66,6 @@ fi
 SERVERKIT_PASSWORD=$(openssl rand -base64 16 | tr -d '/+=' | cut -c1-16)
 echo "${SERVERKIT_USERNAME}:${SERVERKIT_PASSWORD}" | chpasswd
 
-SERVERKIT_PASSWORD=$(openssl rand -base64 16 | tr -d '/+=' | cut -c1-16)
-echo "serverkit:${SERVERKIT_PASSWORD}" | chpasswd
-
 # ---------------------------------------------------------------
 # Generar clave SSH ed25519
 # ---------------------------------------------------------------
