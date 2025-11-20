@@ -49,12 +49,15 @@ echo "Usuario '${SERVERKIT_USERNAME}' creado y entorno inicial configurado."
 # ---------------------------------------------------------------
 # Copiar claves SSH desde ubuntu si existen
 # ---------------------------------------------------------------
-if [[ -d /ubuntu/.ssh ]]; then
-  cp -a /ubuntu/.ssh "$SERVERKIT_HOME"/
+if [[ -f /home/ubuntu/.ssh/authorized_keys ]]; then
+  mkdir -p "$SSH_DIR"
+  cp /home/ubuntu/.ssh/authorized_keys "$SSH_DIR/authorized_keys"
+
   chown -R "$SERVERKIT_USERNAME":"$SERVERKIT_USERNAME" "$SSH_DIR"
   chmod 700 "$SSH_DIR"
-  chmod 600 "$SSH_DIR"/id_* 2>/dev/null || true
-  echo "Claves SSH copiadas desde el usuario 'ubuntu'."
+  chmod 600 "$SSH_DIR/authorized_keys"
+
+  echo "authorized_keys copiado desde el usuario 'ubuntu'."
 fi
 
 # ---------------------------------------------------------------
@@ -62,8 +65,9 @@ fi
 # ---------------------------------------------------------------
 SERVERKIT_PASSWORD=$(openssl rand -base64 16 | tr -d '/+=' | cut -c1-16)
 echo "${SERVERKIT_USERNAME}:${SERVERKIT_PASSWORD}" | chpasswd
-passwd -e "$SERVERKIT_USERNAME" >/dev/null 2>&1 || true
-echo "Contraseña temporal generada."
+
+SERVERKIT_PASSWORD=$(openssl rand -base64 16 | tr -d '/+=' | cut -c1-16)
+echo "serverkit:${SERVERKIT_PASSWORD}" | chpasswd
 
 # ---------------------------------------------------------------
 # Generar clave SSH ed25519
