@@ -2,7 +2,6 @@
 
 # ===============================================
 # Instalación y Endurecimiento de PostgreSQL 18
-# (Usando repositorio oficial PGDG)
 # ===============================================
 # - Configura repositorio PGDG (método oficial).
 # - Instala PostgreSQL 18.
